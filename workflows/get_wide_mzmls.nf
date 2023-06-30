@@ -18,16 +18,24 @@ workflow get_wide_mzmls {
                                     .filter{ it.length() > 0 } // skip empty lines
 
             // get raw files from panorama
-            PANORAMA_GET_RAW_FILE_LIST(spectra_dirs_ch, params.quant_spectra_glob)
+            PANORAMA_GET_RAW_FILE_LIST(spectra_dirs_ch, params.quant_spectra_glob, params.ms_file_ext)
 
             placeholder_ch = PANORAMA_GET_RAW_FILE_LIST.out.raw_file_placeholders.transpose()
             PANORAMA_GET_RAW_FILE(placeholder_ch)
+            wide_mzml_ch = PANORAMA_GET_RAW_FILE.out.panorama_file
             
-            wide_mzml_ch = MSCONVERT(
-                PANORAMA_GET_RAW_FILE.out.panorama_file,
-                params.msconvert.do_demultiplex,
-                params.msconvert.do_simasspectra
-            )
+            if(params.ms_file_ext == 'mzML') {
+                narrow_mzml_ch = PANORAMA_GET_RAW_FILE.out.panorama_file
+                return
+            }
+            if (params.ms_file_ext == 'raw') {
+                narrow_mzml_ch = MSCONVERT(
+                    PANORAMA_GET_RAW_FILE.out.panorama_file,
+                    params.msconvert.do_demultiplex,
+                    params.msconvert.do_simasspectra
+                )
+                return
+            }
 
         } else {
 
@@ -51,7 +59,7 @@ workflow get_wide_mzmls {
             }
 
             if(mzml_files.size() > 0) {
-                    wide_mzml_ch = Channel.fromList(mzml_files)
+                wide_mzml_ch = Channel.fromList(mzml_files)
             } else {
                 wide_mzml_ch = MSCONVERT(
                     Channel.fromList(raw_files),

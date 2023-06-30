@@ -18,16 +18,23 @@ workflow get_narrow_mzmls {
                                     .filter{ it.length() > 0 } // skip empty lines
 
             // get raw files from panorama
-            PANORAMA_GET_RAW_FILE_LIST(spectra_dirs_ch, params.chromatogram_library_spectra_glob)
+            PANORAMA_GET_RAW_FILE_LIST(spectra_dirs_ch, params.chromatogram_library_spectra_glob, params.ms_file_ext)
 
             placeholder_ch = PANORAMA_GET_RAW_FILE_LIST.out.raw_file_placeholders.transpose()
             PANORAMA_GET_RAW_FILE(placeholder_ch)
-            
-            narrow_mzml_ch = MSCONVERT(
-                PANORAMA_GET_RAW_FILE.out.panorama_file,
-                params.msconvert.do_demultiplex,
-                params.msconvert.do_simasspectra
-            )
+
+            if(params.ms_file_ext == 'mzML') {
+                narrow_mzml_ch = PANORAMA_GET_RAW_FILE.out.panorama_file
+                return
+            }
+            if (params.ms_file_ext == 'raw') {
+                narrow_mzml_ch = MSCONVERT(
+                    PANORAMA_GET_RAW_FILE.out.panorama_file,
+                    params.msconvert.do_demultiplex,
+                    params.msconvert.do_simasspectra
+                )
+                return
+            }
 
         } else {
 
@@ -49,7 +56,6 @@ workflow get_narrow_mzmls {
             if(mzml_files.size() > 0 && raw_files.size() > 0) {
                 error "Matched raw files and mzML files for: $spectra_dir/${file_glob}. Please choose a file matching string that will only match one or the other."
             }
-
             if(mzml_files.size() > 0) {
                     narrow_mzml_ch = Channel.fromList(mzml_files)
             } else {

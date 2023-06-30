@@ -17,6 +17,7 @@ process PANORAMA_GET_RAW_FILE_LIST {
     input:
         each web_dav_url
         val file_glob
+        val file_ext
 
     output:
         tuple val(web_dav_url), path("*.download"), emit: raw_file_placeholders
@@ -32,7 +33,7 @@ process PANORAMA_GET_RAW_FILE_LIST {
     echo "Running file list from Panorama..."
         ${exec_java_command(task.memory)} \
         -l \
-        -e raw \
+        -e "${file_ext}" \
         -w "${web_dav_url}" \
         -k \$PANORAMA_API_KEY \
         -o panorama_files.txt \
