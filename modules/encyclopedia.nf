@@ -1,6 +1,6 @@
-def exec_java_command(mem) {
+def exec_java_command(mem, encyclopedia_version) {
     def xmx = "-Xmx${mem.toGiga()-1}G"
-    return "java -Djava.aws.headless=true ${xmx} -jar /usr/local/bin/encyclopedia.jar"
+    return "java -Djava.aws.headless=true ${xmx} -jar /code/encyclopedia-${encyclopedia_version}-executable.jar"
 }
 
 process ENCYCLOPEDIA_SEARCH_FILE {
@@ -12,7 +12,8 @@ process ENCYCLOPEDIA_SEARCH_FILE {
     publishDir "${params.result_dir}/encyclopedia/search-file", pattern: "*.encyclopedia.txt", failOnError: true, mode: 'copy', enabled: params.encyclopedia.save_output
     publishDir "${params.result_dir}/encyclopedia/search-file", pattern: "*.encyclopedia.decoy.txt", failOnError: true, mode: 'copy', enabled: params.encyclopedia.save_output
     label 'process_high_constant'
-    container 'quay.io/protio/encyclopedia:2.12.30'
+    // container 'quay.io/protio/encyclopedia:2.12.30'
+    container "mauraisa/encyclopedia:${params.encyclopedia.version}"
 
     input:
         path mzml_file
@@ -32,12 +33,13 @@ process ENCYCLOPEDIA_SEARCH_FILE {
 
     script:
     """
-    ${exec_java_command(task.memory)} \\
+    ${exec_java_command(task.memory, params.encyclopedia.version)} \\
         -numberOfThreadsUsed ${task.cpus} \\
         -i ${mzml_file} \\
         -f ${fasta} \\
         -l ${spectra_library_file} \\
-        -percolatorVersion /usr/local/bin/percolator \\
+        # -percolatorVersion /usr/local/bin/percolator \\
+        -percolatorVersion v3-01 \\
         ${encyclopedia_params} \\
         1>"encyclopedia-${mzml_file.baseName}.stdout" 2>"encyclopedia-${mzml_file.baseName}.stderr"
     """
@@ -46,7 +48,8 @@ process ENCYCLOPEDIA_SEARCH_FILE {
 process ENCYCLOPEDIA_CREATE_ELIB {
     publishDir "${params.result_dir}/encyclopedia/create-elib", failOnError: true, mode: 'copy'
     label 'process_memory_high_constant'
-    container 'quay.io/protio/encyclopedia:2.12.30'
+    // container 'quay.io/protio/encyclopedia:2.12.30'
+    container "mauraisa/encyclopedia:${params.encyclopedia.version}"
 
     input:
         path search_elib_files
@@ -56,7 +59,7 @@ process ENCYCLOPEDIA_CREATE_ELIB {
         path search_encyclopedia_decoys
         path fasta
         path spectra_library_file
-        val align
+        val align_between_runs
         val outputFilePrefix
         val encyclopedia_params
 
@@ -69,12 +72,12 @@ process ENCYCLOPEDIA_CREATE_ELIB {
     """
     find * -name '*\\.mzML\\.*' -exec bash -c 'mv \$0 \${0/\\.mzML/\\.dia}' {} \\;
 
-    ${exec_java_command(task.memory)} \\
+    ${exec_java_command(task.memory, params.encyclopedia.version)} \\
         -numberOfThreadsUsed ${task.cpus} \\
         -libexport \\
         -o '${outputFilePrefix}-combined-results.elib' \\
         -i ./ \\
-        -a ${align} \\
+        ${align_between_runs ? '-a' : ''} \\
         -f ${fasta} \\
         -l ${spectra_library_file} \\
         -percolatorVersion /usr/local/bin/percolator \\
@@ -87,7 +90,7 @@ process ENCYCLOPEDIA_BLIB_TO_DLIB {
     publishDir "${params.result_dir}/encyclopedia/convert-blib", failOnError: true, mode: 'copy'
     label 'process_medium'
     label 'process_high_memory'
-    container 'quay.io/protio/encyclopedia:2.12.30'
+    container "mauraisa/encyclopedia:${params.encyclopedia.version}"
 
     input:
         path fasta
@@ -100,7 +103,7 @@ process ENCYCLOPEDIA_BLIB_TO_DLIB {
 
     script:
     """
-    ${exec_java_command(task.memory)} \\
+    ${exec_java_command(task.memory, params.encyclopedia.version)} \\
         -numberOfThreadsUsed ${task.cpus} \\
         -convert \\
         -blibToLib \\
