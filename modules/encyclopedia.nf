@@ -38,8 +38,7 @@ process ENCYCLOPEDIA_SEARCH_FILE {
         -i ${mzml_file} \\
         -f ${fasta} \\
         -l ${spectra_library_file} \\
-        # -percolatorVersion /usr/local/bin/percolator \\
-        -percolatorVersion v3-01 \\
+        -percolatorVersion /usr/local/bin/percolator \\
         ${encyclopedia_params} \\
         1>"encyclopedia-${mzml_file.baseName}.stdout" 2>"encyclopedia-${mzml_file.baseName}.stderr"
     """

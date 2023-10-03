@@ -22,14 +22,13 @@ workflow get_wide_mzmls {
 
             placeholder_ch = PANORAMA_GET_RAW_FILE_LIST.out.raw_file_placeholders.transpose()
             PANORAMA_GET_RAW_FILE(placeholder_ch)
-            wide_mzml_ch = PANORAMA_GET_RAW_FILE.out.panorama_file
             
             if(params.ms_file_ext == 'mzML') {
-                narrow_mzml_ch = PANORAMA_GET_RAW_FILE.out.panorama_file
+                wide_mzml_ch = PANORAMA_GET_RAW_FILE.out.panorama_file
                 return
             }
             if (params.ms_file_ext == 'raw') {
-                narrow_mzml_ch = MSCONVERT(
+                wide_mzml_ch = MSCONVERT(
                     PANORAMA_GET_RAW_FILE.out.panorama_file,
                     params.msconvert.do_demultiplex,
                     params.msconvert.do_simasspectra
