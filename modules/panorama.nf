@@ -175,3 +175,54 @@ process PANORAMA_GET_RAW_FILE {
     touch "{$download_file_placeholder.baseName}"
     """
 }
+
+process PANORAMA_UPLOAD_FILE {
+    label 'process_low_constant'
+    container 'quay.io/protio/panorama-client:1.0.0'
+
+    input:
+        val web_dav_dir_url
+        path file_to_upload
+
+    output:
+        path("*.stdout"), emit: stdout
+        path("*.stderr"), emit: stderr
+
+    script:
+        file_name = file_to_upload.baseName
+        """
+        ${exec_java_command(task.memory)} \
+            -u \
+            -w "${web_dav_dir_url}" \
+            -f "${file_to_upload}" \
+            -k \$PANORAMA_API_KEY \
+            1>"panorama-upload-${file_name}.stdout" 2>"panorama-upload-${file_name}.stderr"
+        echo "Done!" # Needed for proper exit
+        """
+}
+
+process PANORAMA_IMPORT_SKYLINE {
+    label 'process_medium'
+    container 'quay.io/protio/panorama-client:1.0.0'
+    
+    input:
+        val panorama_folder
+        path skyline_zip_to_upload
+
+    output:
+        path("*.stdout"), emit: stdout
+        path("*.stderr"), emit: stderr
+
+    script:
+        file_name = skyline_zip_to_upload.baseName
+        """
+        ${exec_java_command(task.memory)} \
+            -i \
+            -p "${panorama_folder}" \
+            -s "${skyline_zip_to_upload}" \
+            -k \$PANORAMA_API_KEY \
+            1>"panorama-import-${file_name}.stdout" 2>"panorama-import-${file_name}.stderr"
+        echo "Done!" # Needed for proper exit
+        """
+}
+

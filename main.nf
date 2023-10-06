@@ -12,6 +12,7 @@ include { skyline_import } from "./workflows/skyline_import"
 
 // modules
 include { ENCYCLOPEDIA_BLIB_TO_DLIB } from "./modules/encyclopedia"
+include { PANORAMA_IMPORT_SKYLINE as UPLOAD_FINAL_SKY_DOC }  from "./modules/panorama"
 
 //
 // The main workflow
@@ -85,8 +86,9 @@ workflow {
     }
 
     // upload results to Panorama
-
-
+    if(params.panorama_upload) {
+        UPLOAD_FINAL_SKY_DOC(params.study_panorama_folder, skyline_import.out.skyline_results)
+    }
 }
 
 /*

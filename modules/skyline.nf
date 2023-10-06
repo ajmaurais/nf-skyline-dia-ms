@@ -70,9 +70,10 @@ process SKYLINE_MERGE_RESULTS {
         path skyline_zipfile
         path skyd_files
         val mzml_files
+        val final_skyline_doc_name
 
     output:
-        path("final.sky.zip"), emit: final_skyline_zipfile
+        path("${final_skyline_doc_name}.sky.zip"), emit: final_skyline_zipfile
         path("skyline-merge.log"), emit: log
 
     script:
@@ -84,9 +85,10 @@ process SKYLINE_MERGE_RESULTS {
         --in="${skyline_zipfile.baseName}" \
         --log-file="skyline-merge.log" \
         ${import_files_params} \
-        --out="final.sky" \
+        --out="${final_skyline_doc_name}.sky" \
         --save \
-        --share-zip="final.sky.zip" \
+        --share-zip="${final_skyline_doc_name}.sky.zip" \
         --share-type="complete"
     """
 }
+
