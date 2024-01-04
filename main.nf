@@ -9,6 +9,7 @@ include { encyclopedia_quant } from "./workflows/encyclopedia_quant"
 include { get_narrow_mzmls } from "./workflows/get_narrow_mzmls"
 include { get_wide_mzmls } from "./workflows/get_wide_mzmls"
 include { skyline_import } from "./workflows/skyline_import"
+include { diann_search } from "./workflows/diann_search"
 
 // modules
 include { ENCYCLOPEDIA_BLIB_TO_DLIB } from "./modules/encyclopedia"
@@ -37,43 +38,55 @@ workflow {
     skyline_template_zipfile = get_input_files.out.skyline_template_zipfile
     wide_mzml_ch = get_wide_mzmls.out.wide_mzml_ch
 
-    // convert blib to dlib if necessary
-    if(params.spectral_library.endsWith(".blib")) {
-        ENCYCLOPEDIA_BLIB_TO_DLIB(
+    final_elib = null
+    if (params.search_engine.toLowerCase() == "encyclopedia") {
+        // convert blib to dlib if necessary
+        if(params.spectral_library.endsWith(".blib")) {
+            ENCYCLOPEDIA_BLIB_TO_DLIB(
+                fasta, 
+                spectral_library
+            )
+
+            spectral_library_to_use = ENCYCLOPEDIA_BLIB_TO_DLIB.out.dlib
+        } else {
+            spectral_library_to_use = spectral_library
+        }
+
+        // create elib if requested
+        if(params.chromatogram_library_spectra_dir != null) {
+            get_narrow_mzmls()  // get narrow windows mzmls
+            narrow_mzml_ch = get_narrow_mzmls.out.narrow_mzml_ch
+
+            // create chromatogram library
+            encyclopeda_export_elib(
+                narrow_mzml_ch, 
+                fasta, 
+                spectral_library_to_use
+            )
+
+            quant_library = encyclopeda_export_elib.out.elib
+        } else {
+            quant_library = spectral_library_to_use
+        }
+
+        // search wide-window data using chromatogram library
+        encyclopedia_quant(
+            wide_mzml_ch, 
             fasta, 
+            quant_library
+        )
+        final_elib = encyclopedia_quant.out.final_elib
+    }
+    else if (params.search_engine.toLowerCase() == 'diann') {
+        diann_search(
+            wide_mzml_ch,
+            fasta,
             spectral_library
-        )
-
-        spectral_library_to_use = ENCYCLOPEDIA_BLIB_TO_DLIB.out.dlib
+        ) 
+        final_elib = diann_search.out.blib
     } else {
-        spectral_library_to_use = spectral_library
+        error "'${params.search_engine}' is an invalid argument for params.search_engine!"
     }
-
-    // create elib if requested
-    if(params.chromatogram_library_spectra_dir != null) {
-        get_narrow_mzmls()  // get narrow windows mzmls
-        narrow_mzml_ch = get_narrow_mzmls.out.narrow_mzml_ch
-
-        // create chromatogram library
-        encyclopeda_export_elib(
-            narrow_mzml_ch, 
-            fasta, 
-            spectral_library_to_use
-        )
-
-        quant_library = encyclopeda_export_elib.out.elib
-    } else {
-        quant_library = spectral_library_to_use
-    }
-
-    // search wide-window data using chromatogram library
-    encyclopedia_quant(
-        wide_mzml_ch, 
-        fasta, 
-        quant_library
-    )
-
-    final_elib = encyclopedia_quant.out.final_elib
 
     // create Skyline document
     if(skyline_template_zipfile != null) {

@@ -23,7 +23,7 @@ workflow get_wide_mzmls {
             placeholder_ch = PANORAMA_GET_RAW_FILE_LIST.out.raw_file_placeholders.transpose()
             PANORAMA_GET_RAW_FILE(placeholder_ch)
             
-            if(params.ms_file_ext == 'mzML') {
+            if(params.ms_file_ext == 'mzML' || params.ms_file_ext == 'd') {
                 wide_mzml_ch = PANORAMA_GET_RAW_FILE.out.panorama_file
                 return
             }
@@ -42,23 +42,31 @@ workflow get_wide_mzmls {
             spectra_dir = file(params.quant_spectra_dir, checkIfExists: true)
             data_files = file("$spectra_dir/${file_glob}")
 
+            println(data_files)
+
             if(data_files.size() < 1) {
                 error "No files found for: $spectra_dir/${file_glob}"
             }
 
             mzml_files = data_files.findAll { it.name.endsWith('.mzML') }
             raw_files = data_files.findAll { it.name.endsWith('.raw') }
+            bruker_files = data_files.findAll { it.name.endsWith('.d') }
 
-            if(mzml_files.size() < 1 && raw_files.size() < 1) {
-                error "No raw or mzML files found in: $spectra_dir"
+            file_types_found = [mzml_files.size(), raw_files.size(), bruker_files.size()].collect{it > 0 ? 1 : 0}.sum()
+
+            if(file_types_found == 0) {
+                error "No raw, mzML, or d files found in: $spectra_dir"
             }
 
-            if(mzml_files.size() > 0 && raw_files.size() > 0) {
-                error "Matched raw files and mzML files for: $spectra_dir/${file_glob}. Please choose a file matching string that will only match one or the other."
+            if(file_types_found > 1) {
+                error "Matched multiple file types for: $spectra_dir/${file_glob}. Please choose a file matching string that will only match one or the other."
             }
 
             if(mzml_files.size() > 0) {
                 wide_mzml_ch = Channel.fromList(mzml_files)
+            }
+            else if(bruker_files.size() > 0) {
+                wide_mzml_ch = Channel.fromList(bruker_files) 
             } else {
                 wide_mzml_ch = MSCONVERT(
                     Channel.fromList(raw_files),

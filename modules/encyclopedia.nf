@@ -1,3 +1,4 @@
+
 def exec_java_command(mem, encyclopedia_version) {
     def xmx = "-Xmx${mem.toGiga()-1}G"
     return "java -Djava.aws.headless=true ${xmx} -jar /code/encyclopedia-${encyclopedia_version}-executable.jar"

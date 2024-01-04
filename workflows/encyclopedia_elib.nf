@@ -37,5 +37,4 @@ workflow encyclopeda_export_elib {
         )
 
         elib = ENCYCLOPEDIA_CREATE_ELIB.out.elib
-
 }

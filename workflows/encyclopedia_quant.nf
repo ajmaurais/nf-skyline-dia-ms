@@ -37,6 +37,4 @@ workflow encyclopedia_quant {
         )
 
         final_elib = ENCYCLOPEDIA_CREATE_ELIB.out.elib
-
-
 }
