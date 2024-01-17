@@ -2,6 +2,7 @@
 include { PANORAMA_GET_RAW_FILE } from "../modules/panorama"
 include { PANORAMA_GET_RAW_FILE_LIST } from "../modules/panorama"
 include { MSCONVERT } from "../modules/msconvert"
+include { ADJUST_MZMLS } from "../modules/msconvert"
 
 workflow get_wide_mzmls {
 
@@ -24,16 +25,14 @@ workflow get_wide_mzmls {
             PANORAMA_GET_RAW_FILE(placeholder_ch)
             
             if(params.ms_file_ext == 'mzML') {
-                wide_mzml_ch = PANORAMA_GET_RAW_FILE.out.panorama_file
-                return
+                wide_mzml_ch_unadjusted = PANORAMA_GET_RAW_FILE.out.panorama_file
             }
             if (params.ms_file_ext == 'raw') {
-                wide_mzml_ch = MSCONVERT(
+                wide_mzml_ch_unadjusted = MSCONVERT(
                     PANORAMA_GET_RAW_FILE.out.panorama_file,
                     params.msconvert.do_demultiplex,
                     params.msconvert.do_simasspectra
                 )
-                return
             }
 
         } else {
@@ -58,13 +57,20 @@ workflow get_wide_mzmls {
             }
 
             if(mzml_files.size() > 0) {
-                wide_mzml_ch = Channel.fromList(mzml_files)
+                wide_mzml_ch_unadjusted = Channel.fromList(mzml_files)
             } else {
-                wide_mzml_ch = MSCONVERT(
+                wide_mzml_ch_unadjusted = MSCONVERT(
                     Channel.fromList(raw_files),
                     params.msconvert.do_demultiplex,
                     params.msconvert.do_simasspectra
                 )
             }
+        }
+
+        if(params.adjust_ms_file_mzs_ppm != null){
+            ADJUST_MZMLS(params.adjust_ms_file_mzs_ppm, wide_mzml_ch_unadjusted)
+            wide_mzml_ch = ADJUST_MZMLS.out.adjusted_mzmls
+        } else {
+            wide_mzml_ch = wide_mzml_ch_unadjusted
         }
 }

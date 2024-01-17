@@ -2,6 +2,7 @@
 include { PANORAMA_GET_RAW_FILE } from "../modules/panorama"
 include { PANORAMA_GET_RAW_FILE_LIST } from "../modules/panorama"
 include { MSCONVERT } from "../modules/msconvert"
+include { ADJUST_MZMLS } from "../modules/msconvert"
 
 workflow get_narrow_mzmls {
 
@@ -24,16 +25,14 @@ workflow get_narrow_mzmls {
             PANORAMA_GET_RAW_FILE(placeholder_ch)
 
             if(params.ms_file_ext == 'mzML') {
-                narrow_mzml_ch = PANORAMA_GET_RAW_FILE.out.panorama_file
-                return
+                narrow_mzml_ch_unadjusted = PANORAMA_GET_RAW_FILE.out.panorama_file
             }
             if (params.ms_file_ext == 'raw') {
-                narrow_mzml_ch = MSCONVERT(
+                narrow_mzml_ch_unadjusted = MSCONVERT(
                     PANORAMA_GET_RAW_FILE.out.panorama_file,
                     params.msconvert.do_demultiplex,
                     params.msconvert.do_simasspectra
                 )
-                return
             }
 
         } else {
@@ -57,13 +56,21 @@ workflow get_narrow_mzmls {
                 error "Matched raw files and mzML files for: $spectra_dir/${file_glob}. Please choose a file matching string that will only match one or the other."
             }
             if(mzml_files.size() > 0) {
-                    narrow_mzml_ch = Channel.fromList(mzml_files)
+                    narrow_mzml_ch_unadjusted = Channel.fromList(mzml_files)
             } else {
-                narrow_mzml_ch = MSCONVERT(
+                narrow_mzml_ch_unadjusted = MSCONVERT(
                     Channel.fromList(raw_files),
                     params.msconvert.do_demultiplex,
                     params.msconvert.do_simasspectra
                 )
             }
         }
+
+        if(params.adjust_ms_file_mzs_ppm != null){
+            ADJUST_MZMLS(params.adjust_ms_file_mzs_ppm, narrow_mzml_ch_unadjusted)
+            narrow_mzml_ch = ADJUST_MZMLS.out.adjusted_mzmls
+        } else {
+            narrow_mzml_ch = narrow_mzml_ch_unadjusted
+        }
 }
+

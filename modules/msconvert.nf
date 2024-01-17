@@ -35,6 +35,31 @@ process MSCONVERT {
     """
 }
 
+process ADJUST_MZMLS {
+    label 'process_medium'
+    label 'error_retry'
+    container 'mauraisa/adjust_mass:0.1'
+
+    input:
+        path mzml_file
+        val adjust_ppm
+
+    output:
+        path("${raw_file.baseName}.mzML"), emit: mzml_file
+
+    script:
+
+    """
+    adjust_mass --inPlace --ppm ${adjust_ppm} ${mzml_file}
+    """
+
+    stub:
+    """
+    touch ${mzml_file.baseName}.mzML
+    """
+}
+
+
 process MSCONVERT_SCIEX {
     storeDir "${params.mzml_cache_directory}/${workflow.commitId}/${params.msconvert.do_demultiplex}/${params.msconvert.do_simasspectra}"
     publishDir "${params.result_dir}/msconvert", pattern: "*.mzML", failOnError: true, mode: 'copy', enabled: params.msconvert_only
