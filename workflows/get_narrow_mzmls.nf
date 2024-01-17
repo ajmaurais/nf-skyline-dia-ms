@@ -67,8 +67,8 @@ workflow get_narrow_mzmls {
         }
 
         if(params.adjust_ms_file_mzs_ppm != null){
-            ADJUST_MZMLS(params.adjust_ms_file_mzs_ppm, narrow_mzml_ch_unadjusted)
-            narrow_mzml_ch = ADJUST_MZMLS.out.adjusted_mzmls
+            ADJUST_MZMLS(narrow_mzml_ch_unadjusted, params.adjust_ms_file_mzs_ppm)
+            narrow_mzml_ch = ADJUST_MZMLS.out.adjusted_mzml
         } else {
             narrow_mzml_ch = narrow_mzml_ch_unadjusted
         }

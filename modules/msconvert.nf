@@ -45,7 +45,7 @@ process ADJUST_MZMLS {
         val adjust_ppm
 
     output:
-        path("${raw_file.baseName}.mzML"), emit: mzml_file
+        path("${mzml_file.baseName}.mzML"), emit: adjusted_mzml
 
     script:
 

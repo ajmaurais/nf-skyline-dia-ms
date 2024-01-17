@@ -68,8 +68,8 @@ workflow get_wide_mzmls {
         }
 
         if(params.adjust_ms_file_mzs_ppm != null){
-            ADJUST_MZMLS(params.adjust_ms_file_mzs_ppm, wide_mzml_ch_unadjusted)
-            wide_mzml_ch = ADJUST_MZMLS.out.adjusted_mzmls
+            ADJUST_MZMLS(wide_mzml_ch_unadjusted, params.adjust_ms_file_mzs_ppm)
+            wide_mzml_ch = ADJUST_MZMLS.out.adjusted_mzml
         } else {
             wide_mzml_ch = wide_mzml_ch_unadjusted
         }
