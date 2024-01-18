@@ -92,3 +92,63 @@ process SKYLINE_MERGE_RESULTS {
     """
 }
 
+process SKYLINE_EXPORT_REPORT {
+    publishDir "${params.result_dir}/skyline/reports", failOnError: true, mode: 'copy'
+    label 'process_high_memory'
+    // label 'error_retry'
+    container 'quay.io/protio/pwiz-skyline-i-agree-to-the-vendor-licenses:3.0.23187-2243781'
+
+    input:
+        path sky_file
+        path skyd_file
+        path lib_file
+        path report_template
+
+    output:
+        path("${report_name}.tsv"), emit: report
+        // path("skyline-export-report.log"), emit: log
+
+    script:
+    report_name = report_template.baseName
+    """
+    wine SkylineCmd --in="${sky_file}" \
+        --report-add="${report_template}" \
+        --report-conflict-resolution="overwrite" --report-format="tsv" --report-invariant \
+        --report-name="${report_name}" --report-file="${report_name}.tsv"
+    """
+
+    stub:
+    """
+    touch ${report_name}.tsv
+    touch skyline-export-report.log
+    """
+}
+
+process UNZIP_SKY_FILE {
+    publishDir "${params.result_dir}/skyline/unzip", failOnError: true, pattern: '*.archive_files.txt', mode: 'copy'
+    label 'process_high_memory'
+    container 'mauraisa/aws_bash:0.5'
+
+    input:
+        path sky_zip_file
+
+    output:
+        path("*.sky"), emit: sky_file
+        path("*.skyd"), emit: skyd_file
+        path("*.[eb]lib"), emit: lib_file
+        path("*.archive_files.txt"), emit: log_file
+
+    script:
+    """
+    unzip ${sky_zip_file} |tee ${sky_zip_file.baseName}.archive_files.txt
+    """
+
+    stub:
+    """
+    touch ${skyline_zipfile.baseName}
+    touch ${skyline_zipfile.baseName}d
+    touch lib.blib
+    touch ${skyline_zipfile.baseName}.archive_files.txt
+    """
+}
+

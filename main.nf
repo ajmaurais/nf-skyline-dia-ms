@@ -9,6 +9,7 @@ include { encyclopedia_quant } from "./workflows/encyclopedia_quant"
 include { get_narrow_mzmls } from "./workflows/get_narrow_mzmls"
 include { get_wide_mzmls } from "./workflows/get_wide_mzmls"
 include { skyline_import } from "./workflows/skyline_import"
+include { generate_dia_qc_report } from "./workflows/generate_qc_report"
 
 // modules
 include { ENCYCLOPEDIA_BLIB_TO_DLIB } from "./modules/encyclopedia"
@@ -89,6 +90,9 @@ workflow {
     if(params.panorama_upload) {
         UPLOAD_FINAL_SKY_DOC(params.study_panorama_folder, skyline_import.out.skyline_results)
     }
+
+    // Generate and upload QC report
+    generate_dia_qc_report(skyline_import.out.skyline_results, "DIA QC report")
 }
 
 /*
