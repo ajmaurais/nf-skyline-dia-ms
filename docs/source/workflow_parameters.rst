@@ -75,6 +75,9 @@ The ``params`` Section
      - ``chromatogram_library_spectra_glob``
      - Which files in this directory to use. Default: ``*.raw``
    * - 
+     - ``skyline_document_name``
+     - The base of the file name of the generated Skyline document. If set to ``'human_dia'``, the output file name would be ``human_dia.sky.zip``. Note: If importing into PanoramaWeb, this is also the name that appears in the list of imported Skyline documents on the project page. Default: ``final``.
+   * - 
      - ``msconvert.do_demultiplex``
      - If starting with raw files, this is the value used by ``msconvert`` for the ``do_demultiplex`` parameter. Default: ``true``.
    * - 
@@ -89,6 +92,12 @@ The ``params`` Section
    * - 
      - ``encyclopedia.save_output``
      - EncyclopeDIA generates many intermediate files that are subsequently processed by the workflow to generate the final results. These intermediate files may be large. If this is set to ``'true'``, these intermediate files will be saved locally in your ``results`` directory. Default: ``'false'``.
+   * - 
+     - ``panorama.upload``
+     - Whether or not to upload results to PanoramaWeb Default: ``false``.
+   * - 
+     - ``panorama.upload_url``
+     - The WebDAV URL of a directory in PanoramaWeb to which to upload the results. Note that ``panorama.upload`` must be set to ``true`` to upload results.
    * - 
      - ``skyline_template_file``
      - The Skyline template file used to generate the final Skyline file. By default a

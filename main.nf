@@ -9,8 +9,12 @@ include { encyclopedia_quant } from "./workflows/encyclopedia_quant"
 include { get_narrow_mzmls } from "./workflows/get_narrow_mzmls"
 include { get_wide_mzmls } from "./workflows/get_wide_mzmls"
 include { skyline_import } from "./workflows/skyline_import"
+include { skyline_reports } from "./workflows/skyline_run_reports"
+include { panorama_upload_results } from "./workflows/panorama_upload"
+include { panorama_upload_mzmls } from "./workflows/panorama_upload"
 
 // modules
+include { SAVE_RUN_DETAILS } from "./modules/save_run_details"
 include { ENCYCLOPEDIA_BLIB_TO_DLIB } from "./modules/encyclopedia"
 
 //
@@ -18,12 +22,38 @@ include { ENCYCLOPEDIA_BLIB_TO_DLIB } from "./modules/encyclopedia"
 //
 workflow {
 
+    all_mzml_ch = null      // hold all mzml files generated
+    all_elib_ch = null      // hold all elibs generated
+    config_file = file(workflow.configFiles[1]) // the config file used
+
+    // save details about this run
+    SAVE_RUN_DETAILS()
+    run_details_file = SAVE_RUN_DETAILS.out.run_details
+
     // only perform msconvert and terminate
     if(params.msconvert_only) {
         get_wide_mzmls()  // get wide windows mzmls
+        wide_mzml_ch = get_wide_mzmls.out.wide_mzml_ch
+
         if(params.chromatogram_library_spectra_dir != null) {
             get_narrow_mzmls()
+
+            narrow_mzml_ch = get_narrow_mzmls.out.narrow_mzml_ch
+            all_mzml_ch = wide_mzml_ch.concat(narrow_mzml_ch)
+        } else {
+            all_mzml_ch = wide_mzml_ch
         }
+
+        // if requested, upload mzMLs to panorama
+        if(params.panorama.upload) {
+            panorama_upload_mzmls(
+                params.panorama.upload_url,
+                all_mzml_ch,
+                run_details_file,
+                config_file
+            )
+        }
+
         return
     }
 
@@ -35,6 +65,7 @@ workflow {
     spectral_library = get_input_files.out.spectral_library
     skyline_template_zipfile = get_input_files.out.skyline_template_zipfile
     wide_mzml_ch = get_wide_mzmls.out.wide_mzml_ch
+    skyr_file_ch = get_input_files.out.skyr_files
 
     // convert blib to dlib if necessary
     if(params.spectral_library.endsWith(".blib")) {
@@ -53,6 +84,8 @@ workflow {
         get_narrow_mzmls()  // get narrow windows mzmls
         narrow_mzml_ch = get_narrow_mzmls.out.narrow_mzml_ch
 
+        all_mzml_ch = wide_mzml_ch.concat(narrow_mzml_ch)
+
         // create chromatogram library
         encyclopeda_export_elib(
             narrow_mzml_ch, 
@@ -61,8 +94,14 @@ workflow {
         )
 
         quant_library = encyclopeda_export_elib.out.elib
+
+        all_elib_ch = encyclopeda_export_elib.out.elib.concat(
+            encyclopeda_export_elib.out.individual_elibs
+        )
     } else {
         quant_library = spectral_library_to_use
+        all_mzml_ch = wide_mzml_ch
+        all_elib_ch = Channel.empty()
     }
 
     // search wide-window data using chromatogram library
@@ -74,6 +113,11 @@ workflow {
 
     final_elib = encyclopedia_quant.out.final_elib
 
+    all_elib_ch = all_elib_ch.concat(
+        encyclopedia_quant.out.individual_elibs,
+        encyclopedia_quant.out.final_elib,
+    )
+
     // create Skyline document
     if(skyline_template_zipfile != null) {
         skyline_import(
@@ -84,8 +128,35 @@ workflow {
         )
     }
 
-    // upload results to Panorama
+    final_skyline_file = skyline_import.out.skyline_results
 
+    // run reports if requested
+    skyline_reports_ch = null;
+    if(params.skyline_skyr_file) {
+        skyline_reports(
+            final_skyline_file,
+            skyr_file_ch
+        )
+        skyline_reports_ch = skyline_reports.out.skyline_report_files.flatten()
+    } else {
+        skyline_reports_ch = Channel.empty()
+    }
+
+    // upload results to Panorama
+    if(params.panorama.upload) {
+        panorama_upload_results(
+            params.panorama.upload_url,
+            all_elib_ch,
+            final_skyline_file,
+            all_mzml_ch,
+            fasta,
+            spectral_library,
+            run_details_file,
+            config_file,
+            skyr_file_ch,
+            skyline_reports_ch
+        )
+    }
 
 }
 

@@ -72,7 +72,7 @@ process SKYLINE_MERGE_RESULTS {
         val mzml_files
 
     output:
-        path("final.sky.zip"), emit: final_skyline_zipfile
+        path("${params.skyline_document_name}.sky.zip"), emit: final_skyline_zipfile
         path("skyline-merge.log"), emit: log
 
     script:
@@ -84,9 +84,50 @@ process SKYLINE_MERGE_RESULTS {
         --in="${skyline_zipfile.baseName}" \
         --log-file="skyline-merge.log" \
         ${import_files_params} \
-        --out="final.sky" \
+        --out="${params.skyline_document_name}.sky" \
         --save \
-        --share-zip="final.sky.zip" \
+        --share-zip="${params.skyline_document_name}.sky.zip" \
         --share-type="complete"
+    """
+}
+
+process SKYLINE_RUN_REPORTS {
+    publishDir "${params.result_dir}/skyline/reports", failOnError: true, mode: 'copy'
+    label 'process_high'
+    label 'error_retry'
+    container 'quay.io/protio/pwiz-skyline-i-agree-to-the-vendor-licenses:3.0.23187-2243781'
+
+    input:
+        path skyline_zipfile
+        path skyr_files
+
+    output:
+        path("*.report.tsv"), emit: skyline_report_files
+        path("*.log"), emit: log
+
+    script:
+    """
+    unzip ${skyline_zipfile}
+
+    # add reports to skyline file
+    for skyrfile in *.skyr; do
+        wine SkylineCmd \
+            --in="${skyline_zipfile.baseName}" \
+            --log-file="skyline-import-\$skyrfile.log" \
+            --report-add="\$skyrfile" \
+            --save
+    done
+
+    # run the reports
+    for xmlfile in ./*.skyr; do
+        awk -F'"' '/<view name=/ { print \$2 }' "\$xmlfile" | while read reportname; do
+            wine SkylineCmd \
+                --in="${skyline_zipfile.baseName}" \
+                --log-file="\$reportname.report-generation.log" \
+                --report-name="\$reportname" \
+                --report-file="./\$reportname.report.tsv" \
+                --report-format="TSV"
+        done
+    done
     """
 }
