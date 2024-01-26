@@ -112,3 +112,29 @@ process ENCYCLOPEDIA_BLIB_TO_DLIB {
         1>"encyclopedia-convert-blib.stdout" 2>"encyclopedia-convert-blib.stderr"
     """
 }
+
+process ENCYCLOPEDIA_DLIB_TO_TSV {
+    publishDir "${params.result_dir}/encyclopedia/convert-blib", failOnError: true, mode: 'copy'
+    label 'process_medium'
+    label 'process_high_memory'
+    container 'quay.io/protio/encyclopedia:3.0.0-MRIFFLE'
+
+    input:
+        path dlib
+
+    output:
+        path("*.stderr"), emit: stderr
+        path("*.stdout"), emit: stdout
+        path("${dlib.baseName}.tsv", emit: tsv)
+
+    script:
+    """
+    ${exec_java_command(task.memory)} \\
+        -numberOfThreadsUsed ${task.cpus} \\
+        -convert \\
+        -libraryToOpenswathTSV \\
+        -o "${dlib.baseName}.tsv" \\
+        -i "${dlib}" \\
+        > >(tee "encyclopedia-convert-dlib.stdout") 2> >(tee "encyclopedia-convert-dlib.stderr" >&2)
+    """
+}

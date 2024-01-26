@@ -10,6 +10,7 @@ String escapeRegex(String str) {
 }
 
 process PANORAMA_GET_RAW_FILE_LIST {
+    cache false
     label 'process_low_constant'
     label 'error_retry'
     container 'mriffle/panorama-client:1.1.0'
@@ -26,7 +27,6 @@ process PANORAMA_GET_RAW_FILE_LIST {
         path("*.stderr"), emit: stderr
 
     script:
-
     // convert glob to regex that we can use to grep lines from a file of filenames
     String regex = '^' + escapeRegex(file_glob).replaceAll("\\*", ".*") + '$'
 
