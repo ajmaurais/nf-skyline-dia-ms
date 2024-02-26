@@ -56,9 +56,9 @@ The ``params`` Section
    * - Req?
      - Parameter Name
      - Description
-   * - ✓
+   * - 
      - ``spectral_library``
-     - That path to the spectral library to use. If you are creating a chromatogram library, this is used for that step and the resulting library is used for quantification. May be a ``dlib``, ``elib`` or ``blib``.
+     - That path to the spectral library to use. May be a ``dlib``, ``elib``, ``blib``, ``speclib`` (DIA-NN), ``tsv`` (DIA-NN), or other formats supported by EncyclopeDIA or DIA-NN. This parameter is required for EncyclopeDIA. If ommitted when using DIA-NN, DIA-NN will be run in library-free mode.
    * - ✓
      - ``fasta``
      - The path to the background FASTA file to use.
@@ -74,6 +74,12 @@ The ``params`` Section
    * - 
      - ``chromatogram_library_spectra_glob``
      - Which files in this directory to use. Default: ``*.raw``
+   * - 
+     - ``search_engine``
+     - Must be set to either ``'encyclopedia'`` or ``'diann'``. If set to ``'dian'``, ``chromatogram_library_spectra_dir``, ``chromatogram_library_spectra_glob``, and EncyclopeDIA-specific parameters will be ignored. Default: ``'encyclopedia'``.
+   * - 
+     - ``skip_skyline``
+     - If set to ``true``, will skip the creation of a Skyline document. Default: ``false``.
    * - 
      - ``skyline_document_name``
      - The base of the file name of the generated Skyline document. If set to ``'human_dia'``, the output file name would be ``human_dia.sky.zip``. Note: If importing into PanoramaWeb, this is also the name that appears in the list of imported Skyline documents on the project page. Default: ``final``.
@@ -93,15 +99,21 @@ The ``params`` Section
      - ``encyclopedia.save_output``
      - EncyclopeDIA generates many intermediate files that are subsequently processed by the workflow to generate the final results. These intermediate files may be large. If this is set to ``'true'``, these intermediate files will be saved locally in your ``results`` directory. Default: ``'false'``.
    * - 
+     - ``diann.params``
+     - The parameters passed to DIA-NN when it is run. Default: ``'--unimod4 --qvalue 0.01 --cut \'K*,R*,!*P\' --reanalyse --smart-profiling'``
+   * - 
      - ``panorama.upload``
      - Whether or not to upload results to PanoramaWeb Default: ``false``.
    * - 
      - ``panorama.upload_url``
      - The WebDAV URL of a directory in PanoramaWeb to which to upload the results. Note that ``panorama.upload`` must be set to ``true`` to upload results.
    * - 
+     - ``skyline_skyr_file``
+     - The path (local file system or Panorama WebDAV) to a ``.skyr`` file, which is a Skyline file that specifies reports. Any reports specified in the ``.skyr`` file will be run automatically as the last step of the workflow and the results saved in your ``results`` directory and (if requested) uploaded to Panorama.
+   * - 
      - ``skyline_template_file``
      - The Skyline template file used to generate the final Skyline file. By default a
-       pre-made Skyline template file suitable for EncyclopeDIA will be used. Specify a file
+       pre-made Skyline template file suitable for EncyclopeDIA or DIA-NN will be used. Specify a file
        location here to use your own template. Note: The filenames in the .zip file must match
        the name of the zip file, itself. E.g., ``my-skyline-template.zip`` must contain ``my-skyline-template.sky``.
    * - 
