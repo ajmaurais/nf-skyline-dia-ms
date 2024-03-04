@@ -59,7 +59,6 @@ process ADJUST_MZMLS {
     """
 }
 
-
 process MSCONVERT_SCIEX {
     storeDir "${params.mzml_cache_directory}/${workflow.commitId}/${params.msconvert.do_demultiplex}/${params.msconvert.do_simasspectra}"
     publishDir "${params.result_dir}/msconvert", pattern: "*.mzML", failOnError: true, mode: 'copy', enabled: params.msconvert_only

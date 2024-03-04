@@ -37,5 +37,4 @@ workflow get_input_files {
         } else {
             skyline_template_zipfile = file(params.default_skyline_template_file)
         }
-
 }

@@ -22,12 +22,11 @@ workflow generate_dia_qc_report {
         UNZIP_SKY_FILE(sky_zip_file)
 
         sky_file = UNZIP_SKY_FILE.out.sky_file
-        skyd_file = UNZIP_SKY_FILE.out.skyd_file
-        sky_lib_file = UNZIP_SKY_FILE.out.lib_file
+        sky_artifacts = UNZIP_SKY_FILE.out.sky_artifacts
 
-        export_replicate_report(sky_file, skyd_file, sky_lib_file,
+        export_replicate_report(sky_file, sky_artifacts,
                                 params.qc_report.replicate_report_template) 
-        export_precursor_report(sky_file, skyd_file, sky_lib_file, 
+        export_precursor_report(sky_file, sky_artifacts,
                                 params.qc_report.precursor_report_template) 
         
         GENERATE_DIA_QC_REPORT_DB(export_replicate_report.out.report,
