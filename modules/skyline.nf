@@ -97,7 +97,7 @@ process SKYLINE_IMPORT_MZML {
 process SKYLINE_MERGE_RESULTS {
     publishDir "${params.result_dir}/skyline/import-spectra", failOnError: true, mode: 'copy', enabled: params.skyline.save_intermediate_output
     cpus 16
-    memory { check_max_mem(1.GB * skyd_files.size()) } // Allocate 1 GB of RAM per mzml file
+    memory { check_max_mem(3.GB * skyd_files.size()) } // Allocate 1 GB of RAM per mzml file
     time 8.h
     // label 'error_retry'
     stageInMode "${workflow.profile == 'aws' ? 'symlink' : 'copy'}"
