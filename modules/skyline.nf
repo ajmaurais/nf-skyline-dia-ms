@@ -181,7 +181,7 @@ process ANNOTATION_TSV_TO_CSV {
     publishDir "${params.result_dir}/skyline/annotate", failOnError: true, mode: 'copy'
     label 'process_low'
     label 'error_retry'
-    container 'mauraisa/dia_qc_report:1.10'
+    container 'quay.io/dia_qc_report:1.10'
 
     input:
         path annotation_tsv
@@ -280,7 +280,7 @@ process SKYLINE_ANNOTATE_DOCUMENT {
 
 process UNZIP_SKY_FILE {
     label 'process_high_memory'
-    container 'mauraisa/aws_bash:0.5'
+    container "${workflow.profile == 'aws' ? 'public.ecr.aws/docker/library/ubuntu:22.04' : 'ubuntu:22.04'}"
 
     input:
         path(sky_zip_file)

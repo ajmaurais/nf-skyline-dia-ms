@@ -38,7 +38,7 @@ process MSCONVERT {
 process ADJUST_MZMLS {
     label 'process_medium'
     label 'error_retry'
-    container 'mauraisa/adjust_mass:0.1'
+    container 'quay.io/mauraisa/adjust_mass:0.1'
 
     input:
         path mzml_file
