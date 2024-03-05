@@ -181,7 +181,7 @@ process ANNOTATION_TSV_TO_CSV {
     publishDir "${params.result_dir}/skyline/annotate", failOnError: true, mode: 'copy'
     label 'process_low'
     label 'error_retry'
-    container 'quay.io/dia_qc_report:1.10'
+    container 'quay.io/mauraisa/dia_qc_report:1.10'
 
     input:
         path annotation_tsv
