@@ -23,6 +23,9 @@ process GENERATE_DIA_QC_REPORT_DB {
         parse_data --ofname qc_report_data.db3 '${replicate_report}' '${precursor_report}' \
             > >(tee "parse_data.stdout") 2> >(tee "parse_data.stderr")
 
+        normalize_db qc_report_data.db3 \
+            > >(tee "normalize_db.stdout") 2> >(tee "normalize_db.stderr" >&2)
+
         generate_qc_qmd ${standard_proteins_args} --title '${qc_report_title}' qc_report_data.db3 \
             > >(tee "make_qmd.stdout") 2> >(tee "make_qmd.stderr")
         """
