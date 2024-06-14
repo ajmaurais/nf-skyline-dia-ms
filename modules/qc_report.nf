@@ -33,7 +33,7 @@ process GENERATE_DIA_QC_REPORT_DB {
     publishDir "${params.result_dir}/qc_report", pattern: '*.stdout', failOnError: true, mode: 'copy'
     publishDir "${params.result_dir}/qc_report", pattern: '*.stderr', failOnError: true, mode: 'copy'
     label 'process_high_memory'
-    container 'quay.io/mauraisa/dia_qc_report:1.17'
+    container 'quay.io/mauraisa/dia_qc_report:1.20'
 
     input:
         path replicate_report
@@ -63,7 +63,8 @@ process GENERATE_DIA_QC_REPORT_DB {
 
     stub:
         """
-        touch stub.stdout stub.stderr stub.db3 stub.qmd
+        touch stub.stdout stub.stderr
+        touch qc_report_data.db3 qc_report.qmd
         """
 }
 
@@ -72,7 +73,7 @@ process EXPORT_TABLES {
     publishDir "${params.result_dir}/qc_report", pattern: '*.stdout', failOnError: true, mode: 'copy'
     publishDir "${params.result_dir}/qc_report", pattern: '*.stderr', failOnError: true, mode: 'copy'
     label 'process_high_memory'
-    container 'quay.io/mauraisa/dia_qc_report:1.17'
+    container 'quay.io/mauraisa/dia_qc_report:1.20'
 
     input:
         path precursor_db
@@ -97,7 +98,7 @@ process RENDER_QC_REPORT {
     publishDir "${params.result_dir}/qc_report", pattern: '*.stdout', failOnError: true, mode: 'copy'
     publishDir "${params.result_dir}/qc_report", pattern: '*.stderr', failOnError: true, mode: 'copy'
     label 'process_high_memory'
-    container 'quay.io/mauraisa/dia_qc_report:1.17'
+    container 'quay.io/mauraisa/dia_qc_report:1.20'
 
     input:
         path qmd
@@ -105,18 +106,17 @@ process RENDER_QC_REPORT {
         val report_format
 
     output:
-        path("qc_report.${format}"), emit: qc_report
+        path("qc_report.${report_format}"), emit: qc_report
 
     script:
-        format = report_format
         """
-        quarto render qc_report.qmd --to '${format}' \
+        quarto render qc_report.qmd --to '${report_format}' \
             > >(tee "render_${report_format}_report.stdout") 2> >(tee "render_${report_format}_report.stderr")
         """
 
     stub:
         """
-        touch "qc_report.${format}"
+        touch "qc_report.${report_format}"
         """
 }
 
