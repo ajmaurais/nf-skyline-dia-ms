@@ -45,7 +45,7 @@ process PARSE_REPORTS {
     script:
         def metadata_arg = replicate_metadata.name == 'EMPTY' ? '' : "-m $replicate_metadata"
         """
-        parse_data --ofname qc_report_data.db3 ${metadata_arg} \
+        dia_qc parse --ofname qc_report_data.db3 ${metadata_arg} \
             --groupBy ${params.skyline.group_by_gene ? 'gene' : 'protein'} \
             '${replicate_report}' '${precursor_report}' \
             > >(tee "parse_data.stdout") 2> >(tee "parse_data.stderr")
@@ -75,7 +75,7 @@ process NORMALIZE_DB {
         # It is necissary to make a copy to avoid breaking nextflow's caching
         cp ${qc_report_db} ${qc_report_db.baseName}_normalized.db3
 
-        normalize_db -m=${params.qc_report.normalization_method} ${qc_report_db.baseName}_normalized.db3 \
+        dia_qc normalize -m=${params.qc_report.normalization_method} ${qc_report_db.baseName}_normalized.db3 \
             > >(tee "normalize_db.stdout") 2> >(tee "normalize_db.stderr" >&2)
         """
 
@@ -100,7 +100,7 @@ process GENERATE_QC_QMD {
 
     script:
         """
-        generate_qc_qmd ${format_flags(params.qc_report.standard_proteins, '--addStdProtein')} \
+        dia_qc qc_qmd ${format_flags(params.qc_report.standard_proteins, '--addStdProtein')} \
             ${format_flags(params.qc_report.color_vars, '--addColorVar')} \
             ${qc_report_db} \
             > >(tee "make_qmd.stdout") 2> >(tee "make_qmd.stderr")
@@ -127,7 +127,7 @@ process EXPORT_TABLES {
 
     script:
         """
-        export_tables --precursorTables=30 --proteinTables=30 ${precursor_db} \
+        dia_qc db_export --precursorTables=30 --proteinTables=30 ${precursor_db} \
             > >(tee "export_tables.stdout") 2> >(tee "export_tables.stderr")
         """
 
