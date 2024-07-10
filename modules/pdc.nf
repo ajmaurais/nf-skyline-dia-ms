@@ -2,7 +2,7 @@
 process GET_DOCKER_INFO {
     publishDir "${params.result_dir}/pdc", failOnError: true, mode: 'copy'
     label 'process_low'
-    container 'mauraisa/pdc_client:0.12'
+    container 'quay.io/mauraisa/pdc_client:0.14'
 
     output:
         path('pdc_versions.txt'), emit: info_file
@@ -23,9 +23,9 @@ process GET_DOCKER_INFO {
 process GET_STUDY_METADATA {
     publishDir "${params.result_dir}/pdc/study_metadata", failOnError: true, mode: 'copy'
     errorStrategy 'retry'
-    maxRetries 2
+    maxRetries 1
     label 'process_low_constant'
-    container 'mauraisa/pdc_client:0.13'
+    container 'quay.io/mauraisa/pdc_client:0.14'
 
     input:
         val pdc_study_id
@@ -37,7 +37,7 @@ process GET_STUDY_METADATA {
         env(study_name), emit: study_name
 
     shell:
-    n_files_arg = params.n_raw_files == null ? "" : "--nFiles ${params.n_raw_files}"
+    n_files_arg = params.pdc.n_raw_files == null ? "" : "--nFiles ${params.pdc.n_raw_files}"
     '''
     study_id=$(PDC_client studyID !{params.pdc.client_args} !{pdc_study_id} |tee study_id.txt)
     study_name=$(PDC_client studyName --normalize !{params.pdc.client_args} $study_id |tee study_name.txt)
@@ -45,11 +45,27 @@ process GET_STUDY_METADATA {
     '''
 }
 
+process METADATA_TO_SKY_ANNOTATIONS {
+    label 'process_low_constant'
+    container 'quay.io/mauraisa/pdc_client:0.14'
+
+    input:
+        path pdc_study_metadata
+
+    output:
+        path('skyline_annotations.csv'), emit: skyline_annotations
+
+    shell:
+    '''
+    PDC_client metadataToSky !{pdc_study_metadata}
+    '''
+}
+
 process GET_FILE {
     label 'process_low_constant'
-    container 'mauraisa/pdc_client:0.12'
+    container 'quay.io/mauraisa/pdc_client:0.14'
     errorStrategy 'retry'
-    maxRetries 2
+    maxRetries 1
     storeDir "${params.panorama_cache_directory}"
 
     input:
@@ -65,7 +81,6 @@ process GET_FILE {
 
     stub:
     """
-    touch '${file_name}'
+    touch ${file_name}
     """
 }
-

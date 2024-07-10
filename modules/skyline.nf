@@ -128,27 +128,27 @@ process SKYLINE_MERGE_RESULTS {
     """
 }
 
-process ANNOTATION_TSV_TO_CSV {
+process METADATA_TO_SKY_ANNOTATIONS {
     publishDir "${params.result_dir}/skyline/annotate", failOnError: true, mode: 'copy'
     label 'process_low'
     label 'error_retry'
-    container 'quay.io/mauraisa/dia_qc_report:1.15'
+    container 'quay.io/mauraisa/dia_qc_report:1.22'
 
     input:
         path replicate_metadata
 
     output:
-        path("sky_annotations.csv"), emit: annotation_csv
-        path("sky_annotation_definitions.bat"), emit: annotation_definitions
+        path("sky.annotations.csv"), emit: annotation_csv
+        path("sky.definitions.bat"), emit: annotation_definitions
 
     shell:
     """
-    metadata_to_sky_annotations ${replicate_metadata}
+    dia_qc metadata_convert -o=skyline --prefix=sky ${replicate_metadata}
     """
 
     stub:
     """
-    touch sky_annotation_definitions.bat  sky_annotations.csv
+    touch sky.definitions.bat sky.annotations.csv
     """
 }
 

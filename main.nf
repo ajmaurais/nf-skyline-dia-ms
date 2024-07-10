@@ -9,6 +9,7 @@ include { encyclopedia_quant } from "./workflows/encyclopedia_quant"
 include { diann_search } from "./workflows/diann_search"
 include { get_narrow_mzmls } from "./workflows/get_narrow_mzmls"
 include { get_wide_mzmls } from "./workflows/get_wide_mzmls"
+include { get_pdc_files } from "./workflows/get_pdc_files"
 include { skyline_import } from "./workflows/skyline_import"
 include { skyline_annotate_doc } from "./workflows/skyline_annotate_document"
 include { skyline_reports } from "./workflows/skyline_run_reports"
@@ -105,7 +106,28 @@ workflow {
     }
 
     get_input_files()   // get input files
-    get_wide_mzmls()  // get wide windows mzmls
+
+    // Get wide mzMLs
+    if(params.pdc.study_id == null) {
+        get_wide_mzmls()  // get wide windows mzmls
+        wide_mzml_ch = get_wide_mzmls.out.wide_mzml_ch
+        replicate_metadata = get_pdc_files.out.replicate_metadata
+        annotate_skyline_doc = (params.replicate_metadata == null)
+    } else {
+        if(params.quant_spectra_dir == null) {
+            get_pdc_files()
+            wide_mzml_ch = get_pdc_files.out.wide_mzml_ch
+            replicate_metadata = get_pdc_files.out.annotations_csv
+            pdc_study_name = get_pdc_files.out.study_name
+        } else {
+            get_wide_mzmls()  // get wide windows mzmls
+            wide_mzml_ch = get_wide_mzmls.out.wide_mzml_ch
+            get_pdc_study_metadata()
+            replicate_metadata = get_pdc_study_metadata.out.annotations_csv
+            pdc_study_name = get_pdc_study_metadata.out.study_name
+        }
+        annotate_skyline_doc = true
+    }
 
     // set up some convenience variables
 
@@ -117,7 +139,6 @@ workflow {
 
     fasta = get_input_files.out.fasta
     skyline_template_zipfile = get_input_files.out.skyline_template_zipfile
-    wide_mzml_ch = get_wide_mzmls.out.wide_mzml_ch
     skyr_file_ch = get_input_files.out.skyr_files
 
     final_elib = null
@@ -279,9 +300,9 @@ workflow {
         }
 
         // annotate skyline document if replicate_metadata was specified
-        if(params.replicate_metadata != null) {
+        if(annotate_skyline_doc) {
             skyline_annotate_doc(skyline_import.out.skyline_results,
-                                 get_input_files.out.replicate_metadata)
+                                 replicate_metadata)
             final_skyline_file = skyline_annotate_doc.out.skyline_results
         } else {
             final_skyline_file = skyline_import.out.skyline_results
@@ -289,7 +310,7 @@ workflow {
 
         // generate QC report
         if(!params.qc_report.skip) {
-            generate_dia_qc_report(final_skyline_file, get_input_files.out.replicate_metadata)
+            generate_dia_qc_report(final_skyline_file, replicate_metadata)
         }
 
         // run reports if requested
