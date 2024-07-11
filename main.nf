@@ -111,7 +111,7 @@ workflow {
     if(params.pdc.study_id == null) {
         get_wide_mzmls()  // get wide windows mzmls
         wide_mzml_ch = get_wide_mzmls.out.wide_mzml_ch
-        replicate_metadata = get_pdc_files.out.replicate_metadata
+        replicate_metadata = get_input_files.out.replicate_metadata
         annotate_skyline_doc = (params.replicate_metadata == null)
     } else {
         if(params.quant_spectra_dir == null) {
