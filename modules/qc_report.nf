@@ -32,7 +32,7 @@ process PARSE_REPORTS {
     publishDir "${params.result_dir}/qc_report", pattern: '*.stdout', failOnError: true, mode: 'copy'
     publishDir "${params.result_dir}/qc_report", pattern: '*.stderr', failOnError: true, mode: 'copy'
     label 'process_high_memory'
-    container 'quay.io/mauraisa/dia_qc_report:1.22'
+    container 'quay.io/mauraisa/dia_qc_report:2.0.0'
 
     input:
         path replicate_report
@@ -41,6 +41,8 @@ process PARSE_REPORTS {
 
     output:
         path('*.db3'), emit: qc_report_db
+        path("*.stdout"), emit: stdout
+        path("*.stderr"), emit: stderr
 
     script:
         def metadata_arg = replicate_metadata.name == 'EMPTY' ? '' : "-m $replicate_metadata"
@@ -62,13 +64,15 @@ process NORMALIZE_DB {
     publishDir "${params.result_dir}/qc_report", pattern: '*.stdout', failOnError: true, mode: 'copy'
     publishDir "${params.result_dir}/qc_report", pattern: '*.stderr', failOnError: true, mode: 'copy'
     label 'process_high_memory'
-    container 'quay.io/mauraisa/dia_qc_report:1.22'
+    container 'quay.io/mauraisa/dia_qc_report:2.0.0'
 
     input:
         path qc_report_db
 
     output:
         path('*_normalized.db3'), emit: qc_report_db
+        path("*.stdout"), emit: stdout
+        path("*.stderr"), emit: stderr
 
     script:
         """
@@ -90,13 +94,15 @@ process GENERATE_QC_QMD {
     publishDir "${params.result_dir}/qc_report", pattern: '*.stdout', failOnError: true, mode: 'copy'
     publishDir "${params.result_dir}/qc_report", pattern: '*.stderr', failOnError: true, mode: 'copy'
     label 'process_high'
-    container 'quay.io/mauraisa/dia_qc_report:1.22'
+    container 'quay.io/mauraisa/dia_qc_report:2.0.0'
 
     input:
         path qc_report_db
 
     output:
         path('*.qmd'), emit: qc_report_qmd
+        path("*.stdout"), emit: stdout
+        path("*.stderr"), emit: stderr
 
     script:
         """
@@ -117,13 +123,15 @@ process EXPORT_TABLES {
     publishDir "${params.result_dir}/qc_report", pattern: '*.stdout', failOnError: true, mode: 'copy'
     publishDir "${params.result_dir}/qc_report", pattern: '*.stderr', failOnError: true, mode: 'copy'
     label 'process_high_memory'
-    container 'quay.io/mauraisa/dia_qc_report:1.22'
+    container 'quay.io/mauraisa/dia_qc_report:2.0.0'
 
     input:
         path precursor_db
 
     output:
         path('*.tsv'), emit: tables
+        path("*.stdout"), emit: stdout
+        path("*.stderr"), emit: stderr
 
     script:
         """
@@ -142,7 +150,7 @@ process RENDER_QC_REPORT {
     publishDir "${params.result_dir}/qc_report", pattern: '*.stdout', failOnError: true, mode: 'copy'
     publishDir "${params.result_dir}/qc_report", pattern: '*.stderr', failOnError: true, mode: 'copy'
     label 'process_high_memory'
-    container 'quay.io/mauraisa/dia_qc_report:1.22'
+    container 'quay.io/mauraisa/dia_qc_report:2.0.0'
 
     input:
         path qmd
@@ -151,6 +159,8 @@ process RENDER_QC_REPORT {
 
     output:
         path("qc_report.${report_format}"), emit: qc_report
+        path("*.stdout"), emit: stdout
+        path("*.stderr"), emit: stderr
 
     script:
         """
@@ -161,6 +171,7 @@ process RENDER_QC_REPORT {
     stub:
         """
         touch "qc_report.${report_format}"
+        touch stub.stdout stub.stderr
         """
 }
 
