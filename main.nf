@@ -16,6 +16,7 @@ include { skyline_reports } from "./workflows/skyline_run_reports"
 include { generate_dia_qc_report } from "./workflows/generate_qc_report"
 include { panorama_upload_results } from "./workflows/panorama_upload"
 include { panorama_upload_mzmls } from "./workflows/panorama_upload"
+include { export_version_info } from "./workflows/export_version_info"
 
 // modules
 include { SAVE_RUN_DETAILS } from "./modules/save_run_details"
@@ -350,6 +351,9 @@ workflow {
             skyline_reports_ch
         )
     }
+
+    // export version information
+    export_version_info(fasta, spectral_library, all_mzml_ch)
 
 }
 

@@ -3,6 +3,40 @@ def sky_basename(path) {
     return path.baseName.replaceAll(/(\.zip)?\.sky$/, '')
 }
 
+process GET_VERSION {
+    publishDir "${params.result_dir}/skyline", failOnError: true, mode: 'copy'
+    label 'process_low'
+    container 'quay.io/protio/pwiz-skyline-i-agree-to-the-vendor-licenses:3.0.24054-2352758'
+
+    output:
+        path("pwiz_versions.txt"), emit: info_file
+
+    shell:
+    '''
+    wine SkylineCmd --version > version.txt
+
+    # parse Skyline version info
+    vars=($(cat version.txt | \
+            tr -cd '\\11\\12\\15\\40-\\176' | \
+            egrep -o 'Skyline.*' | \
+            sed -E "s/(Skyline[-a-z]*) \\((.*)\\) ([.0-9]+) \\(([A-Za-z0-9]{7})\\)/\\1 \\3 \\4/"))
+    skyline_build="${vars[0]}"
+    skyline_version="${vars[1]}"
+    skyline_commit="${vars[2]}"
+
+    # parse msconvert info
+    msconvert_version=$(cat version.txt | \
+                        tr -cd '\\11\\12\\15\\40-\\176' | \
+                        egrep -o 'Proteo[a-zA-Z0-9\\. ]+' | \
+                        egrep -o [0-9].*)
+
+    echo "skyline_build=${skyline_build}" > pwiz_versions.txt
+    echo "skyline_version=${skyline_version}" >> pwiz_versions.txt
+    echo "skyline_commit=${skyline_commit}" >> pwiz_versions.txt
+    echo "msconvert_version=${msconvert_version}" >> pwiz_versions.txt
+    '''
+}
+
 process SKYLINE_ADD_LIB {
     publishDir "${params.result_dir}/skyline/add-lib", failOnError: true, mode: 'copy'
     label 'process_medium'

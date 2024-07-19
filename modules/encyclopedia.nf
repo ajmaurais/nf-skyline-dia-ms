@@ -5,6 +5,21 @@ def exec_java_command(mem) {
 
 ENCYCLOPEDIA_CONTAINER = 'quay.io/protio/encyclopedia:2.12.30-2'
 
+process GET_VERSION {
+    publishDir "${params.result_dir}/encyclopedia", failOnError: true, mode: 'copy'
+    label 'process_low'
+    container ENCYCLOPEDIA_CONTAINER
+
+    output:
+        path('encyclopedia_version.txt'), emit: info_file
+
+    script:
+        """
+        ${exec_java_command(task.memory)} --version > 'version.txt' || echo "encyclopedia_exit=\$?"
+        echo "encyclopedia_version=\$(cat version.txt| awk '{print \$4}')" > encyclopedia_version.txt
+        """
+}
+
 process ENCYCLOPEDIA_SEARCH_FILE {
     publishDir "${params.result_dir}/encyclopedia/search-file", pattern: "*.stderr", failOnError: true, mode: 'copy'
     publishDir "${params.result_dir}/encyclopedia/search-file", pattern: "*.stdout", failOnError: true, mode: 'copy'
