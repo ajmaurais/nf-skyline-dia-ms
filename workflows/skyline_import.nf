@@ -13,6 +13,7 @@ workflow skyline_import {
 
     emit:
         skyline_results
+        skyline_hash
 
     main:
 
@@ -32,4 +33,5 @@ workflow skyline_import {
         )
 
         skyline_results = SKYLINE_MERGE_RESULTS.out.final_skyline_zipfile
+        skyline_hash = SKYLINE_MERGE_RESULTS.out.file_hash
 }

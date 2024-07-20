@@ -17,6 +17,7 @@ include { generate_dia_qc_report } from "./workflows/generate_qc_report"
 include { panorama_upload_results } from "./workflows/panorama_upload"
 include { panorama_upload_mzmls } from "./workflows/panorama_upload"
 include { export_version_info } from "./workflows/export_version_info"
+include { combine_file_stats } from "./workflows/combine_file_stats"
 
 // modules
 include { SAVE_RUN_DETAILS } from "./modules/save_run_details"
@@ -94,7 +95,6 @@ workflow {
 
         // if requested, upload mzMLs to panorama
         if(params.panorama.upload) {
-
             panorama_upload_mzmls(
                 params.panorama.upload_url,
                 all_mzml_ch,
@@ -305,13 +305,29 @@ workflow {
             skyline_annotate_doc(skyline_import.out.skyline_results,
                                  replicate_metadata)
             final_skyline_file = skyline_annotate_doc.out.skyline_results
+            final_skyline_hash = skyline_annotate_doc.out.skyline_hash
         } else {
             final_skyline_file = skyline_import.out.skyline_results
+            final_skyline_hash = skyline_import.out.skyline_hash
         }
 
         // generate QC report
-        if(!params.qc_report.skip) {
+        gene_reports = Channel.empty()
+        if(!params.qc_report.skip)
+        {
             generate_dia_qc_report(final_skyline_file, replicate_metadata)
+
+            qc_report_files = generate_dia_qc_report.out.qc_reports.concat(
+                generate_dia_qc_report.out.qc_report_qmd,
+                generate_dia_qc_report.out.qc_report_db,
+                generate_dia_qc_report.out.qc_tables
+            )
+
+            // Export PDC gene tables
+            if(params.pdc.study_id != null) {
+                EXPORT_GENE_REPORTS(generate_dia_qc_report.out.qc_report_db, study_name)
+                EXPORT_GENE_REPORTS.out.gene_reports | flatten | set{ gene_reports }
+            }
         }
 
         // run reports if requested
@@ -334,6 +350,22 @@ workflow {
         qc_report_files = Channel.empty()
     }
 
+    // export version information
+    export_version_info(fasta, spectral_library, all_mzml_ch)
+
+    combine_file_stats(
+        fasta,
+        spectral_library,
+        // all_mzml_ch,
+        // all_elib_ch,
+        // all_diann_file_ch,
+        final_skyline_file,
+        final_skyline_hash,
+        qc_report_files,
+        // gene_reports,
+        export_version_info.out.version_info
+    )
+
     // upload results to Panorama
     if(params.panorama.upload) {
 
@@ -351,10 +383,6 @@ workflow {
             skyline_reports_ch
         )
     }
-
-    // export version information
-    export_version_info(fasta, spectral_library, all_mzml_ch)
-
 }
 
 /*

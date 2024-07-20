@@ -112,8 +112,6 @@ workflow export_version_info {
                 fasta.map{ f -> tuple("Fasta file", file(f).name)}
             )
 
-        version_vars.view()
-
         var_names = version_vars.map{ it[0] }
         var_values = version_vars.map{ it[1] }
 
