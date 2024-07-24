@@ -114,7 +114,7 @@ process WRITE_FILE_STATS {
     label 'process_low'
     label 'error_retry'
     container "${workflow.profile == 'aws' ? 'public.ecr.aws/docker/library/python:3.13.0a4' : 'python:3.13.0a4'}"
-    publishDir "${params.result_dir}/s3", failOnError: true, mode: 'copy'
+    publishDir "${params.result_dir}", failOnError: true, mode: 'copy'
 
     input:
         val paths
@@ -135,7 +135,7 @@ process WRITE_FILE_STATS {
         file_sizes = [ '${file_sizes.join("', '")}' ]
 
         with open('file_checksums.tsv', 'w') as outF:
-            outF.write('s3_path\\tfile\\tsize\\tmd5_sum\\n')
+            outF.write('results_path\\tfile\\tsize\\tmd5_sum\\n')
             for path, name, f_size, md5 in zip(file_paths, file_names, file_sizes, hashes):
                 outF.write(f'{path}\\t{name}\\t{f_size}\\t{md5}\\n')
         """
