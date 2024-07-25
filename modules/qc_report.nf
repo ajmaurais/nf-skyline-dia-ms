@@ -11,6 +11,27 @@ def format_flags(vars, flag) {
     return format_flag(vars, flag)
 }
 
+process GET_DOCKER_INFO {
+    publishDir "${params.result_dir}/qc_report", failOnError: true, mode: 'copy'
+    label 'process_low'
+    container 'quay.io/mauraisa/dia_qc_report:2.2.1'
+
+    output:
+        path('dia_qc_report_versions.txt'), emit: info_file
+
+    shell:
+        '''
+        echo -e "GIT_HASH=${GIT_HASH}" > dia_qc_report_versions.txt
+        echo -e "GIT_BRANCH=${GIT_BRANCH}" >> dia_qc_report_versions.txt
+        echo -e "GIT_REPO=${GIT_REPO}" >> dia_qc_report_versions.txt
+        echo -e "GIT_SHORT_HASH=${GIT_SHORT_HASH}" >> dia_qc_report_versions.txt
+        echo -e "GIT_UNCOMMITTED_CHANGES=${GIT_UNCOMMITTED_CHANGES}" >> dia_qc_report_versions.txt
+        echo -e "GIT_LAST_COMMIT=${GIT_LAST_COMMIT}" >> dia_qc_report_versions.txt
+        echo -e "DOCKER_IMAGE=${DOCKER_IMAGE}" >> dia_qc_report_versions.txt
+        echo -e "DOCKER_TAG=${DOCKER_TAG}" >> dia_qc_report_versions.txt
+        '''
+}
+
 process MAKE_EMPTY_FILE {
     container "${workflow.profile == 'aws' ? 'public.ecr.aws/docker/library/ubuntu:22.04' : 'ubuntu:22.04'}"
     label 'process_low'
@@ -32,7 +53,7 @@ process PARSE_REPORTS {
     publishDir "${params.result_dir}/qc_report", pattern: '*.stdout', failOnError: true, mode: 'copy'
     publishDir "${params.result_dir}/qc_report", pattern: '*.stderr', failOnError: true, mode: 'copy'
     label 'process_high_memory'
-    container 'quay.io/mauraisa/dia_qc_report:2.0.0'
+    container 'quay.io/mauraisa/dia_qc_report:2.2.1'
 
     input:
         path replicate_report
@@ -64,7 +85,7 @@ process NORMALIZE_DB {
     publishDir "${params.result_dir}/qc_report", pattern: '*.stdout', failOnError: true, mode: 'copy'
     publishDir "${params.result_dir}/qc_report", pattern: '*.stderr', failOnError: true, mode: 'copy'
     label 'process_high_memory'
-    container 'quay.io/mauraisa/dia_qc_report:2.0.0'
+    container 'quay.io/mauraisa/dia_qc_report:2.2.1'
 
     input:
         path qc_report_db
@@ -94,7 +115,7 @@ process GENERATE_QC_QMD {
     publishDir "${params.result_dir}/qc_report", pattern: '*.stdout', failOnError: true, mode: 'copy'
     publishDir "${params.result_dir}/qc_report", pattern: '*.stderr', failOnError: true, mode: 'copy'
     label 'process_high'
-    container 'quay.io/mauraisa/dia_qc_report:2.0.0'
+    container 'quay.io/mauraisa/dia_qc_report:2.2.1'
 
     input:
         path qc_report_db
@@ -123,7 +144,7 @@ process EXPORT_TABLES {
     publishDir "${params.result_dir}/qc_report", pattern: '*.stdout', failOnError: true, mode: 'copy'
     publishDir "${params.result_dir}/qc_report", pattern: '*.stderr', failOnError: true, mode: 'copy'
     label 'process_high_memory'
-    container 'quay.io/mauraisa/dia_qc_report:2.0.0'
+    container 'quay.io/mauraisa/dia_qc_report:2.2.1'
 
     input:
         path precursor_db
@@ -150,7 +171,7 @@ process RENDER_QC_REPORT {
     publishDir "${params.result_dir}/qc_report", pattern: '*.stdout', failOnError: true, mode: 'copy'
     publishDir "${params.result_dir}/qc_report", pattern: '*.stderr', failOnError: true, mode: 'copy'
     label 'process_high_memory'
-    container 'quay.io/mauraisa/dia_qc_report:2.0.0'
+    container 'quay.io/mauraisa/dia_qc_report:2.2.1'
 
     input:
         path qmd

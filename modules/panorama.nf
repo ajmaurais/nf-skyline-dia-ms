@@ -267,6 +267,11 @@ process UPLOAD_FILE {
             > >(tee "panorama-upload-${file_name}.stdout") 2> >(tee "panorama-upload-${file_name}.stderr" >&2)
         echo "Done!" # Needed for proper exit
         """
+
+    stub:
+    """
+    touch stub.stdout stub.stderr
+    """
 }
 
 process IMPORT_SKYLINE {
@@ -281,8 +286,8 @@ process IMPORT_SKYLINE {
         val skyline_web_dav_dir_url     // the panorama webdav URL for the directory containing the skyline document
 
     output:
-        path("panorama-import-skyline.stdout"), emit: stdout
-        path("panorama-import-skyline.stderr"), emit: stderr
+        path("*.stdout"), emit: stdout
+        path("*.stderr"), emit: stderr
 
     script:
         """
@@ -296,4 +301,9 @@ process IMPORT_SKYLINE {
             > >(tee "panorama-import-skyline.stdout") 2> >(tee "panorama-import-skyline.stderr" >&2)
         echo "Done!" # Needed for proper exit
         """
+
+    stub:
+    """
+    touch stub.stdout stub.stderr
+    """
 }

@@ -4,17 +4,20 @@ nextflow.enable.dsl = 2
 
 // Sub workflows
 include { get_input_files } from "./workflows/get_input_files"
-include { encyclopeda_export_elib } from "./workflows/encyclopedia_elib"
-include { encyclopedia_quant } from "./workflows/encyclopedia_quant"
+include { encyclopedia_search as encyclopeda_export_elib } from "./workflows/encyclopedia_search"
+include { encyclopedia_search as encyclopedia_quant } from "./workflows/encyclopedia_search"
 include { diann_search } from "./workflows/diann_search"
-include { get_narrow_mzmls } from "./workflows/get_narrow_mzmls"
-include { get_wide_mzmls } from "./workflows/get_wide_mzmls"
+include { get_pdc_files } from "./workflows/get_pdc_files"
+include { get_mzmls as get_narrow_mzmls } from "./workflows/get_mzmls"
+include { get_mzmls as get_wide_mzmls } from "./workflows/get_mzmls"
 include { skyline_import } from "./workflows/skyline_import"
 include { skyline_annotate_doc } from "./workflows/skyline_annotate_document"
 include { skyline_reports } from "./workflows/skyline_run_reports"
 include { generate_dia_qc_report } from "./workflows/generate_qc_report"
 include { panorama_upload_results } from "./workflows/panorama_upload"
 include { panorama_upload_mzmls } from "./workflows/panorama_upload"
+include { export_version_info } from "./workflows/export_version_info"
+include { combine_file_stats } from "./workflows/combine_file_stats"
 
 // modules
 include { SAVE_RUN_DETAILS } from "./modules/save_run_details"
@@ -78,13 +81,16 @@ workflow {
 
     // only perform msconvert and terminate
     if(params.msconvert_only) {
-        get_wide_mzmls()  // get wide windows mzmls
-        wide_mzml_ch = get_wide_mzmls.out.wide_mzml_ch
+        // get wide windows mzmls
+        get_wide_mzmls(params.quant_spectra_dir,
+                       params.quant_spectra_glob)
+        wide_mzml_ch = get_wide_mzmls.out.mzml_ch
 
         if(params.chromatogram_library_spectra_dir != null) {
-            get_narrow_mzmls()
+            get_narrow_mzmls(params.chromatogram_library_spectra_dir,
+                             params.chromatogram_library_spectra_glob)
 
-            narrow_mzml_ch = get_narrow_mzmls.out.narrow_mzml_ch
+            narrow_mzml_ch = get_narrow_mzmls.out.mzml_ch
             all_mzml_ch = wide_mzml_ch.concat(narrow_mzml_ch)
         } else {
             all_mzml_ch = wide_mzml_ch
@@ -92,7 +98,6 @@ workflow {
 
         // if requested, upload mzMLs to panorama
         if(params.panorama.upload) {
-
             panorama_upload_mzmls(
                 params.panorama.upload_url,
                 all_mzml_ch,
@@ -105,10 +110,34 @@ workflow {
     }
 
     get_input_files()   // get input files
-    get_wide_mzmls()  // get wide windows mzmls
+
+    // Get wide mzMLs
+    if(params.pdc.study_id == null) {
+        get_wide_mzmls(params.quant_spectra_dir,
+                       params.quant_spectra_glob) // get wide windows mzmls
+        wide_mzml_ch = get_wide_mzmls.out.mzml_ch
+        replicate_metadata = get_input_files.out.replicate_metadata
+        annotate_skyline_doc = (params.replicate_metadata == null)
+    } else {
+        if(params.quant_spectra_dir == null) {
+            get_pdc_files()
+            wide_mzml_ch = get_pdc_files.out.wide_mzml_ch
+            replicate_metadata = get_pdc_files.out.annotations_csv
+            pdc_study_name = get_pdc_files.out.study_name
+        } else {
+            get_wide_mzmls(params.quant_spectra_dir,
+                           params.quant_spectra_glob) // get wide windows mzmls
+            wide_mzml_ch = get_wide_mzmls.out.mzml_ch
+            get_pdc_study_metadata()
+            replicate_metadata = get_pdc_study_metadata.out.annotations_csv
+            pdc_study_name = get_pdc_study_metadata.out.study_name
+        }
+        annotate_skyline_doc = true
+    }
+    get_wide_mzmls(params.quant_spectra_dir,
+                   params.quant_spectra_glob) // get wide windows mzmls
 
     // set up some convenience variables
-
     if(params.spectral_library) {
         spectral_library = get_input_files.out.spectral_library
     } else {
@@ -117,7 +146,7 @@ workflow {
 
     fasta = get_input_files.out.fasta
     skyline_template_zipfile = get_input_files.out.skyline_template_zipfile
-    wide_mzml_ch = get_wide_mzmls.out.wide_mzml_ch
+    wide_mzml_ch = get_wide_mzmls.out.mzml_ch
     skyr_file_ch = get_input_files.out.skyr_files
 
     final_elib = null
@@ -144,8 +173,9 @@ workflow {
 
         // create elib if requested
         if(params.chromatogram_library_spectra_dir != null) {
-            get_narrow_mzmls()  // get narrow windows mzmls
-            narrow_mzml_ch = get_narrow_mzmls.out.narrow_mzml_ch
+            get_narrow_mzmls(params.chromatogram_library_spectra_dir,
+                             params.chromatogram_library_spectra_glob) // get narrow windows mzmls
+            narrow_mzml_ch = get_narrow_mzmls.out.mzml_ch
 
             all_mzml_ch = wide_mzml_ch.concat(narrow_mzml_ch)
 
@@ -153,7 +183,10 @@ workflow {
             encyclopeda_export_elib(
                 narrow_mzml_ch,
                 fasta,
-                spectral_library_to_use
+                spectral_library_to_use,
+                'false',
+                'narrow',
+                params.encyclopedia.chromatogram.params
             )
 
             quant_library = encyclopeda_export_elib.out.elib
@@ -171,14 +204,17 @@ workflow {
         encyclopedia_quant(
             wide_mzml_ch,
             fasta,
-            quant_library
+            quant_library,
+            'true',
+            'wide',
+            params.encyclopedia.quant.params
         )
 
-        final_elib = encyclopedia_quant.out.final_elib
+        final_elib = encyclopedia_quant.out.elib
 
         all_elib_ch = all_elib_ch.concat(
             encyclopedia_quant.out.individual_elibs,
-            encyclopedia_quant.out.final_elib,
+            encyclopedia_quant.out.elib,
             encyclopedia_quant.out.peptide_quant,
             encyclopedia_quant.out.protein_quant
         )
@@ -279,17 +315,33 @@ workflow {
         }
 
         // annotate skyline document if replicate_metadata was specified
-        if(params.replicate_metadata != null) {
+        if(annotate_skyline_doc) {
             skyline_annotate_doc(skyline_import.out.skyline_results,
-                                 get_input_files.out.replicate_metadata)
+                                 replicate_metadata)
             final_skyline_file = skyline_annotate_doc.out.skyline_results
+            final_skyline_hash = skyline_annotate_doc.out.skyline_hash
         } else {
             final_skyline_file = skyline_import.out.skyline_results
+            final_skyline_hash = skyline_import.out.skyline_hash
         }
 
         // generate QC report
-        if(!params.qc_report.skip) {
-            generate_dia_qc_report(final_skyline_file, get_input_files.out.replicate_metadata)
+        gene_reports = Channel.empty()
+        if(!params.qc_report.skip)
+        {
+            generate_dia_qc_report(final_skyline_file, replicate_metadata)
+
+            qc_report_files = generate_dia_qc_report.out.qc_reports.concat(
+                generate_dia_qc_report.out.qc_report_qmd,
+                generate_dia_qc_report.out.qc_report_db,
+                generate_dia_qc_report.out.qc_tables
+            )
+
+            // Export PDC gene tables
+            if(params.pdc.study_id != null) {
+                EXPORT_GENE_REPORTS(generate_dia_qc_report.out.qc_report_db, study_name)
+                EXPORT_GENE_REPORTS.out.gene_reports | flatten | set{ gene_reports }
+            }
         }
 
         // run reports if requested
@@ -312,6 +364,22 @@ workflow {
         qc_report_files = Channel.empty()
     }
 
+    // export version information
+    export_version_info(fasta, spectral_library, all_mzml_ch)
+
+    combine_file_stats(
+        fasta,
+        spectral_library,
+        // all_mzml_ch,
+        // all_elib_ch,
+        // all_diann_file_ch,
+        final_skyline_file,
+        final_skyline_hash,
+        qc_report_files,
+        // gene_reports,
+        export_version_info.out.version_info
+    )
+
     // upload results to Panorama
     if(params.panorama.upload) {
 
@@ -329,7 +397,6 @@ workflow {
             skyline_reports_ch
         )
     }
-
 }
 
 /*

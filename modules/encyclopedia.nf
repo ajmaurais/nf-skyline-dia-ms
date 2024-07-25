@@ -5,6 +5,21 @@ def exec_java_command(mem) {
 
 ENCYCLOPEDIA_CONTAINER = 'quay.io/protio/encyclopedia:2.12.30-2'
 
+process GET_VERSION {
+    publishDir "${params.result_dir}/encyclopedia", failOnError: true, mode: 'copy'
+    label 'process_low'
+    container ENCYCLOPEDIA_CONTAINER
+
+    output:
+        path('encyclopedia_version.txt'), emit: info_file
+
+    script:
+        """
+        ${exec_java_command(task.memory)} --version > 'version.txt' || echo "encyclopedia_exit=\$?"
+        echo "encyclopedia_version=\$(cat version.txt| awk '{print \$4}')" > encyclopedia_version.txt
+        """
+}
+
 process ENCYCLOPEDIA_SEARCH_FILE {
     publishDir "${params.result_dir}/encyclopedia/search-file", pattern: "*.stderr", failOnError: true, mode: 'copy'
     publishDir "${params.result_dir}/encyclopedia/search-file", pattern: "*.stdout", failOnError: true, mode: 'copy'
@@ -30,7 +45,7 @@ process ENCYCLOPEDIA_SEARCH_FILE {
         path("${mzml_file}.features.txt"), emit: features
         path("${mzml_file}.encyclopedia.txt"), emit: results_targets
         path("${mzml_file}.encyclopedia.decoy.txt"), emit: results_decoys
-        
+
 
     script:
     """
@@ -42,6 +57,16 @@ process ENCYCLOPEDIA_SEARCH_FILE {
         -percolatorVersion /usr/local/bin/percolator \\
         ${encyclopedia_params} \\
         > >(tee "encyclopedia-${mzml_file.baseName}.stdout") 2> >(tee "encyclopedia-${mzml_file.baseName}.stderr" >&2)
+    """
+
+    stub:
+    """
+    touch stub.stderr stub.stdout
+    touch "${mzml_file}.elib"
+    touch "${mzml_file.baseName}.dia"
+    touch "${mzml_file}.features.txt"
+    touch "${mzml_file}.encyclopedia.txt"
+    touch "${mzml_file}.encyclopedia.decoy.txt"
     """
 }
 
@@ -85,6 +110,14 @@ process ENCYCLOPEDIA_CREATE_ELIB {
         ${encyclopedia_params} \\
         > >(tee "${outputFilePrefix}.stdout") 2> >(tee "${outputFilePrefix}.stderr" >&2)
     """
+
+    stub:
+    """
+    touch stub.stderr stub.stdout
+    touch "${outputFilePrefix}-combined-results.elib"
+    touch "${outputFilePrefix}-combined-results.elib.peptides.txt"
+    touch "${outputFilePrefix}-combined-results.elib.proteins.txt"
+    """
 }
 
 process ENCYCLOPEDIA_BLIB_TO_DLIB {
@@ -113,6 +146,12 @@ process ENCYCLOPEDIA_BLIB_TO_DLIB {
         -f "${fasta}" \\
         > >(tee "encyclopedia-convert-blib.stdout") 2> >(tee "encyclopedia-convert-blib.stderr" >&2)
     """
+
+    stub:
+    """
+    touch stub.stderr stub.stdout
+    touch "${blib.baseName}.dlib"
+    """
 }
 
 process ENCYCLOPEDIA_DLIB_TO_TSV {
@@ -138,5 +177,11 @@ process ENCYCLOPEDIA_DLIB_TO_TSV {
         -o "${dlib.baseName}.tsv" \\
         -i "${dlib}" \\
         > >(tee "encyclopedia-convert-dlib.stdout") 2> >(tee "encyclopedia-convert-dlib.stderr" >&2)
+    """
+
+    stub:
+    """
+    touch stub.stderr stub.stdout
+    touch "${dlib.baseName}.tsv"
     """
 }

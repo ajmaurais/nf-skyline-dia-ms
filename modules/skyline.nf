@@ -3,6 +3,40 @@ def sky_basename(path) {
     return path.baseName.replaceAll(/(\.zip)?\.sky$/, '')
 }
 
+process GET_VERSION {
+    publishDir "${params.result_dir}/skyline", failOnError: true, mode: 'copy'
+    label 'process_low'
+    container 'quay.io/protio/pwiz-skyline-i-agree-to-the-vendor-licenses:3.0.24054-2352758'
+
+    output:
+        path("pwiz_versions.txt"), emit: info_file
+
+    shell:
+    '''
+    wine SkylineCmd --version > version.txt
+
+    # parse Skyline version info
+    vars=($(cat version.txt | \
+            tr -cd '\\11\\12\\15\\40-\\176' | \
+            egrep -o 'Skyline.*' | \
+            sed -E "s/(Skyline[-a-z]*) \\((.*)\\) ([.0-9]+) \\(([A-Za-z0-9]{7})\\)/\\1 \\3 \\4/"))
+    skyline_build="${vars[0]}"
+    skyline_version="${vars[1]}"
+    skyline_commit="${vars[2]}"
+
+    # parse msconvert info
+    msconvert_version=$(cat version.txt | \
+                        tr -cd '\\11\\12\\15\\40-\\176' | \
+                        egrep -o 'Proteo[a-zA-Z0-9\\. ]+' | \
+                        egrep -o [0-9].*)
+
+    echo "skyline_build=${skyline_build}" > pwiz_versions.txt
+    echo "skyline_version=${skyline_version}" >> pwiz_versions.txt
+    echo "skyline_commit=${skyline_commit}" >> pwiz_versions.txt
+    echo "msconvert_version=${msconvert_version}" >> pwiz_versions.txt
+    '''
+}
+
 process SKYLINE_ADD_LIB {
     publishDir "${params.result_dir}/skyline/add-lib", failOnError: true, mode: 'copy'
     label 'process_medium'
@@ -32,6 +66,12 @@ process SKYLINE_ADD_LIB {
         --save \
         --share-zip="results.sky.zip" \
         --share-type="complete"
+    """
+
+    stub:
+    """
+    touch "results.sky.zip"
+    touch "skyline_add_library.log"
     """
 }
 
@@ -63,6 +103,11 @@ process SKYLINE_IMPORT_MZML {
         --import-no-join \
         --log-file="${mzml_file.baseName}.log" \
         --import-file="/tmp/${mzml_file}" \
+    """
+
+    stub:
+    """
+    touch "${mzml_file.baseName}.log" "${mzml_file.baseName}.skyd"
     """
 }
 
@@ -108,29 +153,36 @@ process SKYLINE_MERGE_RESULTS {
 
     sky_zip_hash=\$( md5sum ${params.skyline.document_name}.sky.zip |awk '{print \$1}' )
     """
+
+    stub:
+    """
+    touch "${params.skyline.document_name}.sky.zip"
+    touch "skyline-merge.log"
+    sky_zip_hash=\$( md5sum ${params.skyline.document_name}.sky.zip |awk '{print \$1}' )
+    """
 }
 
-process ANNOTATION_TSV_TO_CSV {
+process METADATA_TO_SKY_ANNOTATIONS {
     publishDir "${params.result_dir}/skyline/annotate", failOnError: true, mode: 'copy'
     label 'process_low'
     label 'error_retry'
-    container 'quay.io/mauraisa/dia_qc_report:1.15'
+    container 'quay.io/mauraisa/dia_qc_report:1.22'
 
     input:
         path replicate_metadata
 
     output:
-        path("sky_annotations.csv"), emit: annotation_csv
-        path("sky_annotation_definitions.bat"), emit: annotation_definitions
+        path("sky.annotations.csv"), emit: annotation_csv
+        path("sky.definitions.bat"), emit: annotation_definitions
 
     shell:
     """
-    metadata_to_sky_annotations ${replicate_metadata}
+    dia_qc metadata_convert -o=skyline --prefix=sky ${replicate_metadata}
     """
 
     stub:
     """
-    touch sky_annotation_definitions.bat  sky_annotations.csv
+    touch sky.definitions.bat sky.annotations.csv
     """
 }
 
@@ -254,4 +306,19 @@ process SKYLINE_RUN_REPORTS {
         done
     done
     """
+
+    stub:
+    '''
+    touch stub.log
+
+    for xmlfile in ./*.skyr; do
+        awk -F'"' '/<view name=/ { print $2 }' "$xmlfile" | while read reportname; do
+            touch "${reportname}.report.tsv"
+        done
+    done
+
+    if [ $(ls *.report.tsv|wc -l) -eq 0 ] ; then
+        touch stub.report.tsv
+    fi
+    '''
 }

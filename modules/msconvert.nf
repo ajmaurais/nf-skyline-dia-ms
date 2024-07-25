@@ -13,6 +13,7 @@ process MSCONVERT {
 
     output:
         path("${raw_file.baseName}.mzML"), emit: mzml_file
+        env(mzml_hash), emit: file_hash
 
     script:
 
@@ -28,10 +29,13 @@ process MSCONVERT {
         --ignoreUnknownInstrumentError \
         --filter "peakPicking true 1-" \
         --64 ${simasspectra} ${demultiplex_param}
+
+    mzml_hash=\$( md5sum ${raw_file.baseName}.mzML |awk '{print \$1}' )
     """
 
     stub:
     """
     touch ${raw_file.baseName}.mzML
+    mzml_hash=\$( md5sum ${raw_file.baseName}.mzML |awk '{print \$1}' )
     """
 }

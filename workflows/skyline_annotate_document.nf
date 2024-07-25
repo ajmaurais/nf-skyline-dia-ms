@@ -1,5 +1,5 @@
 // Modules
-include { ANNOTATION_TSV_TO_CSV } from "../modules/skyline"
+include { METADATA_TO_SKY_ANNOTATIONS } from "../modules/skyline"
 include { SKYLINE_MINIMIZE_DOCUMENT } from "../modules/skyline"
 include { SKYLINE_ANNOTATE_DOCUMENT } from "../modules/skyline"
 
@@ -12,7 +12,7 @@ workflow skyline_annotate_doc {
         skyline_results
 
     main:
-        ANNOTATION_TSV_TO_CSV(replicate_metadata)
+        METADATA_TO_SKY_ANNOTATIONS(replicate_metadata)
 
         if(params.skyline.minimize) {
             SKYLINE_MINIMIZE_DOCUMENT(skyline_input)
@@ -22,8 +22,8 @@ workflow skyline_annotate_doc {
         }
 
         SKYLINE_ANNOTATE_DOCUMENT(annotate_sky_input,
-                                  ANNOTATION_TSV_TO_CSV.out.annotation_csv,
-                                  ANNOTATION_TSV_TO_CSV.out.annotation_definitions)
+                                  METADATA_TO_SKY_ANNOTATIONS.out.annotation_csv,
+                                  METADATA_TO_SKY_ANNOTATIONS.out.annotation_definitions)
 
         skyline_results = SKYLINE_ANNOTATE_DOCUMENT.out.final_skyline_zipfile
 }
