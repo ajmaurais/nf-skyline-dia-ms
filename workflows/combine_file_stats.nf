@@ -35,7 +35,7 @@ workflow combine_file_stats {
         // workflow versions
         workflow_versions
 
-        // gene and precursor matricies
+        // gene and precursor matrices
         // gene_reports
 
     emit:
