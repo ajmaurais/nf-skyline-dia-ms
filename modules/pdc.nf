@@ -1,8 +1,10 @@
 
+PDC_CLIENT_VERSION = '0.15'
+
 process GET_DOCKER_INFO {
     publishDir "${params.result_dir}/pdc", failOnError: true, mode: 'copy'
     label 'process_low'
-    container 'quay.io/mauraisa/pdc_client:0.14'
+    container "quay.io/mauraisa/pdc_client:${PDC_CLIENT_VERSION}"
 
     output:
         path('pdc_versions.txt'), emit: info_file
@@ -23,9 +25,9 @@ process GET_DOCKER_INFO {
 process GET_STUDY_METADATA {
     publishDir "${params.result_dir}/pdc/study_metadata", failOnError: true, mode: 'copy'
     errorStrategy 'retry'
-    maxRetries 1
+    maxRetries 5
     label 'process_low_constant'
-    container 'quay.io/mauraisa/pdc_client:0.14'
+    container "quay.io/mauraisa/pdc_client:${PDC_CLIENT_VERSION}"
 
     input:
         val pdc_study_id
@@ -47,7 +49,7 @@ process GET_STUDY_METADATA {
 
 process METADATA_TO_SKY_ANNOTATIONS {
     label 'process_low_constant'
-    container 'quay.io/mauraisa/pdc_client:0.14'
+    container "quay.io/mauraisa/pdc_client:${PDC_CLIENT_VERSION}"
 
     input:
         path pdc_study_metadata
@@ -63,7 +65,7 @@ process METADATA_TO_SKY_ANNOTATIONS {
 
 process GET_FILE {
     label 'process_low_constant'
-    container 'quay.io/mauraisa/pdc_client:0.14'
+    container "quay.io/mauraisa/pdc_client:${PDC_CLIENT_VERSION}"
     errorStrategy 'retry'
     maxRetries 1
     storeDir "${params.panorama_cache_directory}"
