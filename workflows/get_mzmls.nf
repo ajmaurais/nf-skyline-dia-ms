@@ -1,7 +1,24 @@
+import java.security.MessageDigest
+import groovy.io.FileType
+
 // modules
 include { PANORAMA_GET_RAW_FILE } from "../modules/panorama"
 include { PANORAMA_GET_RAW_FILE_LIST } from "../modules/panorama"
 include { MSCONVERT } from "../modules/msconvert"
+
+// Calculate MD5 hash of file
+def computeMd5(file) {
+    MessageDigest md = MessageDigest.getInstance("MD5")
+    file.withInputStream { stream ->
+        byte[] buffer = new byte[8192]
+        int bytesRead
+        while ((bytesRead = stream.read(buffer)) != -1) {
+            md.update(buffer, 0, bytesRead)
+        }
+    }
+    byte[] digest = md.digest()
+    return digest.collect { String.format("%02x", it) }.join('')
+}
 
 workflow get_mzmls {
     take:
@@ -9,7 +26,9 @@ workflow get_mzmls {
         spectra_glob
 
     emit:
-       mzml_ch
+        mzml_ch
+        // zipped_mzml_ch
+        file_hash_ch
 
     main:
 
@@ -25,7 +44,7 @@ workflow get_mzmls {
 
             placeholder_ch = PANORAMA_GET_RAW_FILE_LIST.out.raw_file_placeholders.transpose()
             PANORAMA_GET_RAW_FILE(placeholder_ch)
-            
+
             mzml_ch = MSCONVERT(
                 PANORAMA_GET_RAW_FILE.out.panorama_file,
                 params.msconvert.do_demultiplex,
@@ -54,7 +73,12 @@ workflow get_mzmls {
             }
 
             if(mzml_files.size() > 0) {
-                    mzml_ch = Channel.fromList(mzml_files)
+                mzml_ch = Channel.fromList(mzml_files)
+                file_hash_ch = mzml_ch.map { file ->
+                    def md5 = computeMd5(file)
+                    return [file: file, md5: md5]
+                }
+        
             } else {
                 mzml_ch = MSCONVERT(
                     Channel.fromList(raw_files),
@@ -63,4 +87,9 @@ workflow get_mzmls {
                 )
             }
         }
+
+        MSCONVERT.out.file_hash.splitText().map{
+            it -> elems = it.split();
+            return tuple(elems[1], elems[0])
+        }.set(file_hash_ch)
 }

@@ -10,6 +10,7 @@ workflow skyline_annotate_doc {
 
     emit:
         skyline_results
+        skyline_hash
 
     main:
         METADATA_TO_SKY_ANNOTATIONS(replicate_metadata)
@@ -26,4 +27,5 @@ workflow skyline_annotate_doc {
                                   METADATA_TO_SKY_ANNOTATIONS.out.annotation_definitions)
 
         skyline_results = SKYLINE_ANNOTATE_DOCUMENT.out.final_skyline_zipfile
+        skyline_hash = SKYLINE_ANNOTATE_DOCUMENT.out.file_hash
 }

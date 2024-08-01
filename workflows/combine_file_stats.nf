@@ -15,7 +15,8 @@ workflow combine_file_stats {
         spectral_library
 
         // mzml files
-        // mzml_files
+        mzml_files
+        mzml_hashes
 
         // ENCYCLOPEDIA_SEARCH_FILE artifacts
         // encyclopedia_search_files
@@ -32,11 +33,11 @@ workflow combine_file_stats {
         // Reports
         qc_reports
 
+        // gene and precursor matrices
+        gene_reports
+
         // workflow versions
         workflow_versions
-
-        // gene and precursor matrices
-        // gene_reports
 
     emit:
         file_hashes
@@ -48,7 +49,7 @@ workflow combine_file_stats {
 
         // GZIP_MZML(mzml_files)
         QC_FILE_STATS(qc_reports)
-        // GENE_REPORT_STATS(gene_reports)
+        GENE_REPORT_STATS(gene_reports)
         WORKFLOW_VERSIONS_STATS(workflow_versions)
         FASTA_FILE_STATS(fasta)
         SPECLIB_FILE_STATS(spectral_library)
@@ -77,18 +78,46 @@ workflow combine_file_stats {
         //             it -> tuple(it[0], "skyline", it[2], it[1])
         //         })
         // ).concat(
+        
+        mzml_stats = mzml_files.map{
+                it -> tuple(it.name, "", it.size())
+            }.join(mzml_hashes)
+        // mzml_stats.view()
+        
+        skyline_stats = final_skyline_file.map{
+                it-> tuple(it.name, it.size())
+            }.combine(final_skyline_hash).map{
+                it -> tuple(it[0], "${params.result_dir}/skyline", it[2], it[1])
+            }
+        // skyline_stats.view()
+
+        // encyclopedia_stats = quant_elib.map{
+        //         it-> tuple(it.name, it.size())
+        //     }.combine(quant_elib_hash).map{
+        //         it -> tuple(it[0], "${params.result_dir}/encyclopedia/create-elib", it[2], it[1])
+        //     }
+        // encyclopedia_stats.view()
+
         file_stats = qc_reports.map{
                 it -> tuple(it.name, "qc_reports", it.size())
             }.concat(
-                //gene_reports.map{it -> tuple(it.name, "gene_reports", it.size()) },
-                workflow_versions.map{it -> tuple(it.name, "${params.result_dir}", it.size()) }
-            ).join(QC_FILE_STATS.out.concat(//GENE_REPORT_STATS.out,
+                gene_reports.map{it -> tuple(it.name, "${params.result_dir}/gene_reports", it.size()) },
+                spectral_library.map{it -> tuple(it.name, "${params.result_dir}", it.size()) },
+                workflow_versions.map{it -> tuple(it.name, "${params.result_dir}/qc_reports", it.size()) }
+                
+            ).join(QC_FILE_STATS.out.concat(GENE_REPORT_STATS.out,
                                             WORKFLOW_VERSIONS_STATS.out,
                                             FASTA_FILE_STATS.out,
                                             SPECLIB_FILE_STATS.out)).map{
                 it -> tuple(it[0], it[1], it[3], it[2])
             }
         //)
+        
+        file_stats = file_stats.concat(
+            mzml_stats,
+            skyline_stats
+        )
+        file_stats.view()
 
         file_paths = file_stats.map{ it[1] }
         file_names = file_stats.map{ it[0] }

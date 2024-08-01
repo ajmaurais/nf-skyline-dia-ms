@@ -55,7 +55,7 @@ process SKYLINE_ADD_LIB {
 
     script:
     """
-    unzip ${skyline_template_zipfile}
+    unzip -o ${skyline_template_zipfile}
 
     wine SkylineCmd \
         --in="${skyline_template_zipfile.baseName}" \
@@ -94,7 +94,7 @@ process SKYLINE_IMPORT_MZML {
 
     script:
     """
-    unzip ${skyline_zipfile}
+    unzip -o ${skyline_zipfile}
 
     cp ${mzml_file} /tmp/${mzml_file}
 
@@ -137,7 +137,7 @@ process SKYLINE_MERGE_RESULTS {
     }
 
     """
-    unzip ${skyline_zipfile}
+    unzip -o ${skyline_zipfile}
 
     cp -v ${skyd_files} /tmp/
 
@@ -202,7 +202,7 @@ process SKYLINE_MINIMIZE_DOCUMENT {
 
     script:
         """
-        unzip ${skyline_zipfile}
+        unzip -o ${skyline_zipfile}
 
         wine SkylineCmd \
             --in="${skyline_zipfile.baseName}" \
@@ -243,7 +243,7 @@ process SKYLINE_ANNOTATE_DOCUMENT {
 
     shell:
     """
-    unzip ${skyline_zipfile}
+    unzip -o ${skyline_zipfile}
 
     # Create Skyline batch file with annotation definitions
     echo '--in="${skyline_zipfile.baseName}"' > add_annotations.bat
@@ -282,7 +282,7 @@ process SKYLINE_RUN_REPORTS {
 
     script:
     """
-    unzip ${skyline_zipfile}
+    unzip -o ${skyline_zipfile}
 
     # add reports to skyline file
     for skyrfile in *.skyr; do

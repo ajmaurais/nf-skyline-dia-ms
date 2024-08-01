@@ -30,6 +30,7 @@ workflow get_pdc_files {
         metadata
         annotations_csv
         wide_mzml_ch
+        file_hash_ch
 
     main:
         get_pdc_study_metadata()
@@ -47,5 +48,9 @@ workflow get_pdc_files {
                   params.msconvert.do_simasspectra)
 
         wide_mzml_ch = MSCONVERT.out.mzml_file
+        file_hash_ch = MSCONVERT.out.file_hash.splitText().map{
+            it -> elems = it.split();
+            return tuple(elems[1], elems[0])
+        }
 }
 

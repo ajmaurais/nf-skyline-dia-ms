@@ -196,3 +196,30 @@ process RENDER_QC_REPORT {
         """
 }
 
+process EXPORT_GENE_REPORTS {
+    publishDir "${params.result_dir}/gene_reports", failOnError: true, mode: 'copy'
+    label 'process_high_memory'
+    container 'quay.io/mauraisa/dia_qc_report:2.2.1'
+
+    input:
+        path batch_db
+        val file_prefix
+
+    output:
+        path("*.tsv"), emit: gene_reports
+        path("*.stdout"), emit: stdout
+        path("*.stderr"), emit: stderr
+
+    script:
+        """
+        dia_qc export_gene_matrix --prefix=${file_prefix} --useAliquotId \
+            '${params.pdc.gene_level_data}' '${batch_db}'  \
+            > >(tee "export_reports.stdout") 2> >(tee "export_reports.stderr" >&2)
+        """
+
+    stub:
+        """
+        touch stub.tsv
+        touch stub.stdout stub.stderr
+        """
+}

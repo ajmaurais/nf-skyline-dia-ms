@@ -57,6 +57,13 @@ process ENCYCLOPEDIA_SEARCH_FILE {
         -percolatorVersion /usr/local/bin/percolator \\
         ${encyclopedia_params} \\
         > >(tee "encyclopedia-${mzml_file.baseName}.stdout") 2> >(tee "encyclopedia-${mzml_file.baseName}.stderr" >&2)
+
+    md5sum "${mzml_file}" \
+        "${mzml_file}.elib" \
+        "${mzml_file.baseName}.dia" \
+        "${mzml_file}.features.txt" \
+        "${mzml_file}.encyclopedia.txt" \
+        "${mzml_file}.encyclopedia.decoy.txt" > "${mzml_file.baseName}.file_hashes.txt"
     """
 
     stub:
@@ -67,6 +74,13 @@ process ENCYCLOPEDIA_SEARCH_FILE {
     touch "${mzml_file}.features.txt"
     touch "${mzml_file}.encyclopedia.txt"
     touch "${mzml_file}.encyclopedia.decoy.txt"
+
+    md5sum "${mzml_file}" \
+        "${mzml_file}.elib" \
+        "${mzml_file.baseName}.dia" \
+        "${mzml_file}.features.txt" \
+        "${mzml_file}.encyclopedia.txt" \
+        "${mzml_file}.encyclopedia.decoy.txt" > "${mzml_file.baseName}.file_hashes.txt"
     """
 }
 
@@ -93,6 +107,7 @@ process ENCYCLOPEDIA_CREATE_ELIB {
         path("${outputFilePrefix}-combined-results.elib"), emit: elib
         path("${outputFilePrefix}-combined-results.elib.peptides.txt"), emit: peptide_quant, optional: true
         path("${outputFilePrefix}-combined-results.elib.proteins.txt"), emit: protein_quant, optional: true
+        path("${outputFilePrefix}.md5"), emit: file_hash
 
     script:
     """
@@ -109,14 +124,15 @@ process ENCYCLOPEDIA_CREATE_ELIB {
         -percolatorVersion /usr/local/bin/percolator \\
         ${encyclopedia_params} \\
         > >(tee "${outputFilePrefix}.stdout") 2> >(tee "${outputFilePrefix}.stderr" >&2)
+
+    md5sum ${outputFilePrefix}-combined-results.elib > "${outputFilePrefix}.md5"
     """
 
     stub:
     """
     touch stub.stderr stub.stdout
     touch "${outputFilePrefix}-combined-results.elib"
-    touch "${outputFilePrefix}-combined-results.elib.peptides.txt"
-    touch "${outputFilePrefix}-combined-results.elib.proteins.txt"
+    md5sum ${outputFilePrefix}-combined-results.elib > "${outputFilePrefix}.md5"
     """
 }
 
