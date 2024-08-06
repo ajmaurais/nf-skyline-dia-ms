@@ -1,15 +1,7 @@
 
-def format_flag(var, flag) {
-    ret = (var == null ? "" : "${flag} ${var}")
-    return ret
-}
-
-def format_flags(vars, flag) {
-    if(vars instanceof List) {
-        return (vars == null ? "" : "${flag} \'${vars.join('\' ' + flag + ' \'')}\'")
-    }
-    return format_flag(vars, flag)
-}
+// groovy functions
+include { format_flag } from "../modules/functions"
+include { format_flags } from "../modules/functions"
 
 process MAKE_EMPTY_FILE {
     container params.images.ubuntu
