@@ -17,8 +17,7 @@ process SKYLINE_ADD_LIB {
 
     output:
         path("results.sky.zip"), emit: skyline_zipfile
-        path("skyline_add_library.stdout"), emit: stdout
-        path("skyline_add_library.stderr"), emit: stderr
+        path("skyline_add_library.log"), emit: log
         path("pwiz_versions.txt"), emit: version
 
     shell:
@@ -33,7 +32,7 @@ process SKYLINE_ADD_LIB {
         --save \
         --share-zip="results.sky.zip" \
         --share-type="complete" \
-        > >(tee 'skyline_add_library.stdout') 2> >(tee 'skyline_add_library.stderr' >&2)
+        > >(tee -a 'skyline_add_library.log') 2> >(tee -a 'skyline_add_library.log' >&2)
 
     # parse Skyline version info
     wine SkylineCmd --version > version.txt
@@ -60,7 +59,7 @@ process SKYLINE_ADD_LIB {
     stub:
     '''
     touch "results.sky.zip"
-    touch "skyline_add_library.stderr" "skyline_add_library.stdout"
+    touch "skyline_add_library.log"
 
     # parse Skyline version info
     wine SkylineCmd --version > version.txt
@@ -100,8 +99,7 @@ process SKYLINE_IMPORT_MZML {
 
     output:
         path("*.skyd"), emit: skyd_file
-        path("${mzml_file.baseName}.stdout"), emit: stdout
-        path("${mzml_file.baseName}.stderr"), emit: stderr
+        path("${mzml_file.baseName}.log"), emit: log
 
     script:
     """
@@ -113,12 +111,12 @@ process SKYLINE_IMPORT_MZML {
         --in="${skyline_zipfile.baseName}" --memstamp \
         --import-no-join \
         --import-file="/tmp/${mzml_file}" \
-        > >(tee '${mzml_file.baseName}.stdout') 2> >(tee '${mzml_file.baseName}.stderr' >&2)
+        > >(tee -a '${mzml_file.baseName}.log') 2> >(tee -a '${mzml_file.baseName}.log' >&2)
     """
 
     stub:
     """
-    touch "${mzml_file.baseName}.stdout" "${mzml_file.baseName}.stderr" "${mzml_file.baseName}.skyd"
+    touch "${mzml_file.baseName}.log" "${mzml_file.baseName}.skyd"
     """
 }
 
@@ -137,8 +135,7 @@ process SKYLINE_MERGE_RESULTS {
 
     output:
         path("${params.skyline.document_name}.sky.zip"), emit: final_skyline_zipfile
-        path("skyline-merge.stdout"), emit: stdout
-        path("skyline-merge.stderr"), emit: stderr
+        path("skyline-merge.log"), emit: log
         env(sky_zip_hash), emit: file_hash
 
     script:
@@ -161,7 +158,7 @@ process SKYLINE_MERGE_RESULTS {
         --save \
         --share-zip="${params.skyline.document_name}.sky.zip" \
         --share-type="complete" \
-        > >(tee 'skyline-merge.stdout') 2> >(tee 'skyline-merge.stderr' >&2)
+        > >(tee -a 'skyline-merge.log') 2> >(tee -a 'skyline-merge.log' >&2)
 
     sky_zip_hash=\$( md5sum ${params.skyline.document_name}.sky.zip |awk '{print \$1}' )
     """
@@ -169,7 +166,7 @@ process SKYLINE_MERGE_RESULTS {
     stub:
     """
     touch "${params.skyline.document_name}.sky.zip"
-    touch "skyline-merge.stderr" "skyline-merge.stdout"
+    touch "skyline-merge.log"
     sky_zip_hash=\$( md5sum ${params.skyline.document_name}.sky.zip |awk '{print \$1}' )
     """
 }
@@ -208,8 +205,7 @@ process SKYLINE_MINIMIZE_DOCUMENT {
 
     output:
         path("${sky_basename(skyline_zipfile)}_minimized.sky.zip"), emit: final_skyline_zipfile
-        path("*.stdout"), emit: stdout
-        path("*.stderr"), emit: stderr
+        path("*.log"), emit: log
         env(sky_zip_hash), emit: file_hash
 
     script:
@@ -224,7 +220,7 @@ process SKYLINE_MINIMIZE_DOCUMENT {
             --save \
             --share-zip="${sky_basename(skyline_zipfile)}_minimized.sky.zip" \
             --share-type="minimal" \
-        > >(tee 'minimize_skyline.stdout') 2> >(tee 'minimize_skyline.stderr' >&2)
+        > >(tee -a 'minimize_skyline.log') 2> >(tee -a 'minimize_skyline.log' >&2)
 
         sky_zip_hash=\$( md5sum ${sky_basename(skyline_zipfile)}_minimized.sky.zip |awk '{print \$1}' )
         """
@@ -232,7 +228,7 @@ process SKYLINE_MINIMIZE_DOCUMENT {
     stub:
     """
     touch ${sky_basename(skyline_zipfile)}_minimized.sky.zip
-    touch stub.stdout stub.stderr
+    touch minimize_skyline.log
     sky_zip_hash=\$( md5sum ${sky_basename(skyline_zipfile)}_minimized.sky.zip |awk '{print \$1}' )
     """
 }
@@ -249,8 +245,7 @@ process SKYLINE_ANNOTATE_DOCUMENT {
 
     output:
         path("${sky_basename(skyline_zipfile)}_annotated.sky.zip"), emit: final_skyline_zipfile
-        path("*.stdout"), emit: stdout
-        path("*.stderr"), emit: stderr
+        path("*.log"), emit: log
         env(sky_zip_hash), emit: file_hash
 
     shell:
@@ -265,7 +260,7 @@ process SKYLINE_ANNOTATE_DOCUMENT {
     echo '--share-zip="${sky_basename(skyline_zipfile)}_annotated.sky.zip"' >> add_annotations.bat
 
     wine SkylineCmd --batch-commands=add_annotations.bat \
-        > >(tee 'annotate_doc.stdout') 2> >(tee 'annotate_doc.stderr' >&2)
+        > >(tee -a 'annotate_doc.log') 2> >(tee -a 'annotate_doc.log' >&2)
 
     sky_zip_hash=\$( md5sum ${sky_basename(skyline_zipfile)}_annotated.sky.zip |awk '{print \$1}' )
     """
@@ -273,7 +268,7 @@ process SKYLINE_ANNOTATE_DOCUMENT {
     stub:
     """
     touch "${sky_basename(skyline_zipfile)}_annotated.sky.zip"
-    touch stub.stdout stub.stderr
+    touch annotate_doc.log
     sky_zip_hash=\$( md5sum ${sky_basename(skyline_zipfile)}_annotated.sky.zip |awk '{print \$1}' )
     """
 }
@@ -290,8 +285,7 @@ process SKYLINE_RUN_REPORTS {
 
     output:
         path("*.report.tsv"), emit: skyline_report_files
-        path("*.stdout"), emit: stdout
-        path("*.stderr"), emit: stderr
+        path("*.log"), emit: log
 
     shell:
     '''
@@ -315,7 +309,7 @@ process SKYLINE_RUN_REPORTS {
 
     # Run batch commands
     wine SkylineCmd --batch-commands=export_reports.bat \
-        > >(tee 'export_reports.stdout') 2> >(tee 'export_reports.stderr' >&2)
+        > >(tee -a 'export_reports.log') 2> >(tee -a 'export_reports.log' >&2)
     '''
 
     stub:
@@ -330,6 +324,6 @@ process SKYLINE_RUN_REPORTS {
         touch stub.report.tsv
     fi
 
-    touch stub.stdout stub.stderr
+    touch export_reports.log
     '''
 }
