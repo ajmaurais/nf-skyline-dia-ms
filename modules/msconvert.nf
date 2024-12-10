@@ -4,7 +4,7 @@
  */
 def msconvert_command() {
     return """
-    wine msconvert -v --zlib --mzML --64 \
+    wine msconvert -v --zlib --mzML --64 --singleThreaded \
         --ignoreUnknownInstrumentError --filter "peakPicking true 1-" \
         ${params.msconvert.do_demultiplex ? '--filter "demultiplex optimization=overlap_only"' : ''} \
         ${params.msconvert.do_simasspectra ? '--simAsSpectra' : ''} \
