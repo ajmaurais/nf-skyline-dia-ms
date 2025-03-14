@@ -23,10 +23,7 @@ workflow panorama_upload_results {
         skyr_file_ch
         skyline_report_ch
         aws_secret_id
-    
-    emit:
-        uploads_finished
-    
+
     main:
 
         if(!webdav_url.endsWith("/")) {
@@ -67,6 +64,9 @@ workflow panorama_upload_results {
                 aws_secret_id
             )
         }
+
+    emit:
+        uploads_finished
 }
 
 workflow panorama_upload_mzmls {
@@ -77,7 +77,7 @@ workflow panorama_upload_mzmls {
         nextflow_run_details
         nextflow_config_file
         aws_secret_id
-    
+
     main:
 
         if(!webdav_url.endsWith("/")) {
