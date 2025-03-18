@@ -9,7 +9,7 @@ include { MSCONVERT } from "../modules/msconvert"
 include { param_to_list } from "./get_input_files"
 include { escapeRegex } from "../modules/panorama"
 
-workflow get_mzmls {
+workflow get_ms_files {
     take:
         spectra_dir
         spectra_glob
@@ -87,15 +87,21 @@ workflow get_mzmls {
             .branch{
                 mzml: it.name.endsWith('.mzML')
                 raw: it.name.endsWith('.raw')
+                d_zip: it.name.endsWith('.d.zip')
                 other: true
                     error "Unknown file type:" + it.name
-            }.set{ms_file_ch}
+            }.set{split_ms_file_ch}
 
         // Convert raw files if applicable
-        MSCONVERT(ms_file_ch.raw)
+        MSCONVERT(split_ms_file_ch.raw)
+
+        ms_file_ch = MSCONVERT.out
+            .concat(split_ms_file_ch.mzml)
+            .map{ it -> ['mzML', it]}
+            .concat(split_ms_file_ch.d_zip.map{ it -> ['d.zip', it]})
 
     emit:
-        mzml_ch = MSCONVERT.out.concat(ms_file_ch.mzml)
+        ms_file_ch
 }
 
 def is_panorama_url(url) {
