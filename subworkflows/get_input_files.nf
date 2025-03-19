@@ -27,7 +27,7 @@ def param_to_list(param_variable) {
 
 workflow get_input_files {
 
-   take:
+    take:
         aws_secret_id
 
     main:

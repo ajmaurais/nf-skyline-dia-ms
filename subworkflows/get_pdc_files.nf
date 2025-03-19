@@ -34,11 +34,22 @@ workflow get_pdc_files {
             | map{row -> tuple(row['url'], row['file_name'], row['md5sum'], row['file_size'])} \
             | GET_FILE
 
-        MSCONVERT(GET_FILE.out.downloaded_file)
+        split_ms_file_ch = GET_FILE.out.downloaded_file
+            .branch{ raw: it.name.endsWith('.raw')
+                     d_zip: it.name.endsWith('.d.zip')
+                     other: true
+                        error "Unknown file type: " + it.name
+            }
+
+        MSCONVERT(split_ms_file_ch.raw)
+
+        ms_file_ch = MSCONVERT.out
+            .map{ it -> ['mzML', it]}
+            .concat(split_ms_file_ch.d_zip.map{ it -> ['d.zip', it]})
 
     emit:
         study_name = get_pdc_study_metadata.out.study_name
         metadata
         annotations_csv = get_pdc_study_metadata.out.annotations_csv
-        wide_mzml_ch = MSCONVERT.out.mzml_file
+        ms_file_ch
 }

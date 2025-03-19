@@ -4,8 +4,8 @@ nextflow.enable.dsl = 2
 
 // Sub workflows
 include { get_input_files } from "./subworkflows/get_input_files"
-include { get_mzmls as get_narrow_mzmls } from "./subworkflows/get_mzmls"
-include { get_mzmls as get_wide_mzmls } from "./subworkflows/get_mzmls"
+include { get_ms_files as get_narrow_ms_files } from "./subworkflows/get_ms_files"
+include { get_ms_files as get_wide_ms_files } from "./subworkflows/get_ms_files"
 include { dia_search } from "./workflows/dia_search"
 include { skyline } from "./workflows/skyline"
 include { panorama_upload_results } from "./subworkflows/panorama_upload"
@@ -40,7 +40,7 @@ def check_old_param_name(old_var, new_var) {
 params.skyline.document_name = check_old_param_name('skyline_document_name',
                                                     'skyline.document_name')
 params.skyline.skip = check_old_param_name('skip_skyline',
-                                            'skyline.skip')
+                                           'skyline.skip')
 params.skyline.template_file = check_old_param_name('skyline_template_file',
                                                     'skyline.template_file')
 params.skyline.skyr_file = check_old_param_name('skyline_skyr_file',
@@ -51,7 +51,7 @@ params.skyline.skyr_file = check_old_param_name('skyline_skyr_file',
 //
 workflow {
 
-    all_mzml_ch = null       // hold all mzml files generated
+    all_ms_file_tuple_ch = null       // hold all ms files generated
 
     // version file channels
     search_engine_version = null
@@ -85,34 +85,36 @@ workflow {
         aws_secret_id = Channel.of('none').collect()    // ensure this is a value channel
     }
 
-    // get mzML files
+    // get MS files
     if(params.pdc.study_id) {
         get_pdc_files()
-        wide_mzml_ch = get_pdc_files.out.wide_mzml_ch
+        wide_ms_file_tuple_ch = get_pdc_files.out.ms_file_ch
         pdc_study_name = get_pdc_files.out.study_name
         skyline_document_name = skyline_document_name == 'final' ? pdc_study_name : skyline_document_name
     } else{
-        get_wide_mzmls(params.quant_spectra_dir, params.quant_spectra_glob, aws_secret_id)
-        wide_mzml_ch = get_wide_mzmls.out.mzml_ch
+        get_wide_ms_files(params.quant_spectra_dir, params.quant_spectra_glob, aws_secret_id)
+        wide_ms_file_tuple_ch = get_wide_ms_files.out.ms_file_ch
         pdc_study_name = null
     }
-    narrow_mzml_ch = null
+    narrow_ms_file_tuple_ch = null
     if(params.chromatogram_library_spectra_dir != null) {
-        get_narrow_mzmls(params.chromatogram_library_spectra_dir,
-                         params.chromatogram_library_spectra_glob,
-                         aws_secret_id)
+        get_narrow_ms_files(params.chromatogram_library_spectra_dir,
+                            params.chromatogram_library_spectra_glob,
+                            aws_secret_id)
 
-        narrow_mzml_ch = get_narrow_mzmls.out.mzml_ch
-        all_mzml_ch = wide_mzml_ch.concat(narrow_mzml_ch)
+        narrow_ms_file_tuple_ch = get_narrow_ms_files.out.ms_file_ch
+        all_ms_file_tuple_ch = wide_ms_file_tuple_ch.concat(narrow_ms_file_tuple_ch)
     } else {
-        all_mzml_ch = wide_mzml_ch
+        narrow_ms_file_tuple_ch = Channel.empty()
+        all_ms_file_tuple_ch = wide_ms_file_tuple_ch
     }
+    all_ms_file_ch = all_ms_file_tuple_ch.map{ it -> it[1] }
 
     // only perform msconvert and terminate
     if(params.msconvert_only) {
 
         // save details about this run
-        input_files = all_mzml_ch.map{ it -> ['Spectra File', it.baseName] }
+        input_files = all_ms_file_ch.map{ it -> ['Spectra File', it.baseName] }
         version_files = Channel.empty()
         save_run_details(input_files.collect(), version_files.collect())
         run_details_file = save_run_details.out.run_details
@@ -121,7 +123,7 @@ workflow {
         if(params.panorama.upload) {
             panorama_upload_mzmls(
                 params.panorama.upload_url,
-                all_mzml_ch,
+                all_ms_file_ch,
                 run_details_file,
                 config_file,
                 aws_secret_id
@@ -156,15 +158,15 @@ workflow {
         search_engine,
         fasta,
         spectral_library,
-        narrow_mzml_ch,
-        wide_mzml_ch,
+        narrow_ms_file_tuple_ch,
+        wide_ms_file_tuple_ch,
     )
     search_engine_version = dia_search.out.search_engine_version
     final_speclib = dia_search.out.final_speclib
     fasta = dia_search.out.search_fasta
 
     skyline (
-        wide_mzml_ch,
+        wide_ms_file_tuple_ch,
         skyline_template_zipfile,
         skyline_fasta,
         replicate_metadata,
@@ -181,7 +183,7 @@ workflow {
     input_files = fasta.map{ it -> ['Fasta file', it.name] }.concat(
         fasta.map{ it -> ['Skyline fasta file', it.name] },
         spectral_library.map{ it -> ['Spectra library', it.baseName] },
-        all_mzml_ch.map{ it -> ['Spectra file', it.baseName] })
+        all_ms_file_ch.map{ it -> ['Spectra file', it.baseName] })
 
     save_run_details(input_files.collect(), version_files.collect())
     run_details_file = save_run_details.out.run_details
@@ -204,7 +206,7 @@ workflow {
             dia_search.out.all_search_files,
             search_engine,
             skyline.out.final_skyline_file,
-            all_mzml_ch,
+            all_ms_file_ch,
             fasta,
             spectral_library,
             config_file,

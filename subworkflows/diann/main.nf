@@ -6,33 +6,41 @@ include { BLIB_BUILD_LIBRARY } from "../../modules/diann"
 include { setupPanoramaAPIKeySecret } from '../../modules/panorama.nf'
 include { DIANN_SEARCH } from "../../modules/diann"
 include { DIANN_SEARCH_LIB_FREE } from "../../modules/diann"
+// include { TEST_TUPLE } from "../../modules/diann"
 
 workflow diann_search {
     take:
-        ms_file_ch
+        ms_file_tuple_ch
         fasta
         spectral_library
 
     main:
 
+        file_types = ms_file_tuple_ch.map{ it -> it[0] }
+        ms_file_ch = ms_file_tuple_ch.map{ it -> it[1] }
+
         diann_results = null
         if(params.spectral_library) {
             diann_results = DIANN_SEARCH (
+                file_types.collect(),
                 ms_file_ch.collect(),
                 fasta,
                 spectral_library,
                 params.diann.params
             )
+            // TEST_TUPLE(ms_file_tuple_ch.collect())
+
             diann_version = DIANN_SEARCH.out.version
             output_file_stats = DIANN_SEARCH.out.output_file_stats
-
             predicted_speclib = Channel.empty()
         } else {
             diann_results = DIANN_SEARCH_LIB_FREE (
+                file_types.collect(),
                 ms_file_ch.collect(),
                 fasta,
                 params.diann.params
             )
+            // TEST_TUPLE(ms_file_tuple_ch.collect())
 
             diann_version = DIANN_SEARCH_LIB_FREE.out.version
             predicted_speclib = diann_results.predicted_speclib
@@ -60,7 +68,7 @@ workflow diann {
     take:
         fasta
         spectral_library
-        mzml_ch
+        ms_file_ch
 
     main:
         if(!params.fasta) {
@@ -110,7 +118,7 @@ workflow diann {
         }
 
         diann_search(
-            mzml_ch,
+            ms_file_ch,
             fasta,
             spectral_library_to_use
         )

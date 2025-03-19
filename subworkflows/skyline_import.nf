@@ -12,7 +12,7 @@ workflow skyline_import {
         skyline_template_zipfile
         fasta
         elib
-        wide_mzml_file_ch
+        ms_file_tuple_ch
         replicate_metadata
         skyline_document_name
 
@@ -23,13 +23,16 @@ workflow skyline_import {
         skyline_zipfile = SKYLINE_ADD_LIB.out.skyline_zipfile
 
         // import spectra into skyline file
-        SKYLINE_IMPORT_MZML(skyline_zipfile, wide_mzml_file_ch)
+        SKYLINE_IMPORT_MZML(skyline_zipfile, ms_file_tuple_ch)
+
+        ms_file_name_ch = ms_file_tuple_ch
+            .map{ it -> it[0] == 'd.zip' ? it[1].name.replace(/.zip$/, '') : it[1].name }
 
         // merge sky files
         SKYLINE_MERGE_RESULTS(
             skyline_zipfile,
             SKYLINE_IMPORT_MZML.out.skyd_file.collect(),
-            wide_mzml_file_ch.collect(),
+            ms_file_name_ch.collect(),
             fasta,
             skyline_document_name
         )
