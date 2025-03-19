@@ -26,8 +26,8 @@ workflow dia_search{
         wide_ms_file_tuple_ch.concat(narrow_ms_file_tuple_ch)
             .map{ it -> it[0] }
             .unique()
-            .collect()
             .tap{unique_file_type_ch}
+            .collect()
             .subscribe{ file_types ->
                 if(file_types.size() > 1)
                     error "Multiple file types detected: ${file_types}"
@@ -35,10 +35,11 @@ workflow dia_search{
 
         if(search_engine.toLowerCase() == 'encyclopedia') {
 
-            unique_file_type_ch.subscribe{ file_types ->
-                if(file_types[0] != 'mzML')
-                    error "EncyclopeDIA only supports mzML files"
-            }
+            unique_file_type_ch.collect()
+                .subscribe{ file_types ->
+                    if(file_types[0] != 'mzML')
+                        error "EncyclopeDIA only supports mzML files"
+                }
 
             encyclopedia(fasta, spectral_library,
                          narrow_ms_file_ch, wide_ms_file_ch)
@@ -51,10 +52,11 @@ workflow dia_search{
 
         } else if(search_engine.toLowerCase() == 'diann') {
             supported_file_types = ['mzML', 'd.zip']
-            unique_file_type_ch.subscribe{ file_types ->
-                if(!file_types[0] in supported_file_types)
-                    error "MS file type '${file_types[0]}' not DiaNN supported types (${supported_file_types.join(', ')})"
-            }
+            unique_file_type_ch.collect()
+                .subscribe{ file_types ->
+                    if(!file_types[0] in supported_file_types)
+                        error "MS file type '${file_types[0]}' not DiaNN supported types (${supported_file_types.join(', ')})"
+                }
 
             diann(fasta, spectral_library, wide_ms_file_tuple_ch)
 
@@ -66,10 +68,11 @@ workflow dia_search{
 
         } else if(search_engine.toLowerCase() == 'cascadia') {
 
-            unique_file_type_ch.subscribe{ file_types ->
-                if(file_types[0] != 'mzML')
-                    error "Cascadia only supports mzML files"
-            }
+            unique_file_type_ch.collect()
+                .subscribe{ file_types ->
+                    if(file_types[0] != 'mzML')
+                        error "Cascadia only supports mzML files"
+                }
 
             cascadia(wide_ms_file_ch)
 
