@@ -51,6 +51,7 @@ workflow dia_search{
             search_fasta = fasta
 
         } else if(search_engine.toLowerCase() == 'diann') {
+
             supported_file_types = ['mzML', 'd.zip']
             unique_file_type_ch.collect()
                 .subscribe{ file_types ->

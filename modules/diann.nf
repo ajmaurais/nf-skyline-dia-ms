@@ -21,42 +21,42 @@ process DIANN_SEARCH {
         path("output_file_stats.txt"), emit: output_file_stats
 
     script:
-        unique_file_types = file_types.unique()
+        /*
+        * dia-nn will produce different results if the order of the input files is different
+        * sort the files to ensure they are in the same order in every run
+        */
+        sorted_ms_files = ms_files.toList().sort { a, b -> a.toString() <=> b.toString() }
 
+        unique_file_types = file_types.unique()
+        prepare_raw_files_cmd = ''
         if( unique_file_types.size() > 1 ) {
             error "Multiple file types detected: ${unique_file_types}"
-
-        } else if( unique_file_types[0] == 'mzML' ) {
-            /*
-            * dia-nn will produce different results if the order of the input files is different
-            * sort the files to ensure they are in the same order in every run
-            */
-            sorted_ms_files = ms_files.toList().sort { a, b -> a.toString() <=> b.toString() }
-
-            ms_file_args = "--f '${sorted_ms_files.join('\' --f \'')}'"
-
-            """
-            diann ${ms_file_args} \
-                --threads ${task.cpus} \
-                --fasta "${fasta_file}" \
-                --lib "${spectral_library}" \
-                ${diann_params} \
-                > >(tee "diann.stdout") 2> >(tee "diann.stderr" >&2)
-            mv -v lib.tsv.speclib report.tsv.speclib
-
-            head -n 1 diann.stdout | egrep -o '[0-9]+\\.[0-9]+\\.[0-9]+' | xargs printf "diann_version=%s\\n" > diann_version.txt
-
-            md5sum '${ms_files.join('\' \'')}' report.tsv.speclib report.tsv *.quant | sed -E 's/([a-f0-9]{32}) [ \\*](.*)/\\2\\t\\1/' | sort > hashes.txt
-            stat -L --printf='%n\t%s\n' '${ms_files.join('\' \'')}' report.tsv.speclib report.tsv *.quant | sort > sizes.txt
-            join -t'\t' hashes.txt sizes.txt > output_file_stats.txt
-            """
-
         } else if( unique_file_types[0] == 'd.zip' ) {
-            error "d.zip support not implemented for diann"
-
+            ms_file_args = "--f '${(sorted_ms_files as List).collect { it.name.replaceAll(/\.zip$/, '') }.join('\' --f \'')}'"
+            prepare_raw_files_cmd = "unzip ${sorted_ms_files.join('\' \'')}"
+        } else if( unique_file_types[0] == 'mzML' ) {
+            ms_file_args = "--f '${sorted_ms_files.join('\' --f \'')}'"
         } else {
             error "Unknown file type: ${unique_file_types[0]}"
         }
+
+        """
+        ${prepare_raw_files_cmd}
+
+        diann ${ms_file_args} \
+            --threads ${task.cpus} \
+            --fasta "${fasta_file}" \
+            --lib "${spectral_library}" \
+            ${diann_params} \
+            > >(tee "diann.stdout") 2> >(tee "diann.stderr" >&2)
+        mv -v lib.tsv.speclib report.tsv.speclib
+
+        head -n 1 diann.stdout | egrep -o '[0-9]+\\.[0-9]+\\.[0-9]+' | xargs printf "diann_version=%s\\n" > diann_version.txt
+
+        md5sum '${ms_files.join('\' \'')}' report.tsv.speclib report.tsv *.quant | sed -E 's/([a-f0-9]{32}) [ \\*](.*)/\\2\\t\\1/' | sort > hashes.txt
+        stat -L --printf='%n\t%s\n' '${ms_files.join('\' \'')}' report.tsv.speclib report.tsv *.quant | sort > sizes.txt
+        join -t'\t' hashes.txt sizes.txt > output_file_stats.txt
+        """
 
     stub:
         """
@@ -92,44 +92,43 @@ process DIANN_SEARCH_LIB_FREE {
         path("output_file_stats.txt"), emit: output_file_stats
 
     script:
+        /*
+        * dia-nn will produce different results if the order of the input files is different
+        * sort the files to ensure they are in the same order in every run
+        */
+        sorted_ms_files = ms_files.toList().sort { a, b -> a.toString() <=> b.toString() }
 
         unique_file_types = file_types.unique()
-
+        prepare_raw_files_cmd = ''
         if( unique_file_types.size() > 1 ) {
             error "Multiple file types detected: ${unique_file_types}"
-
-        } else if( unique_file_types[0] == 'mzML' ) {
-            /*
-            * dia-nn will produce different results if the order of the input files is different
-            * sort the files to ensure they are in the same order in every run
-            */
-            sorted_ms_files = ms_files.toList().sort { a, b -> a.toString() <=> b.toString() }
-
-            ms_file_args = "--f '${sorted_ms_files.join('\' --f \'')}'"
-
-            """
-            diann ${ms_file_args} \
-                --threads ${task.cpus} \
-                --fasta "${fasta_file}" \
-                --fasta-search \
-                --predictor \
-                ${diann_params} \
-                > >(tee "diann.stdout") 2> >(tee "diann.stderr" >&2)
-            mv -v lib.tsv.speclib report.tsv.speclib
-
-            head -n 1 diann.stdout | egrep -o '[0-9]+\\.[0-9]+\\.[0-9]+' | xargs printf "diann_version=%s\\n" > diann_version.txt
-
-            md5sum '${ms_files.join('\' \'')}' report.tsv.speclib report.tsv *.quant | sed -E 's/([a-f0-9]{32}) [ \\*](.*)/\\2\\t\\1/' | sort > hashes.txt
-            stat -L --printf='%n\t%s\n' '${ms_files.join('\' \'')}' report.tsv.speclib report.tsv *.quant | sort > sizes.txt
-            join -t'\t' hashes.txt sizes.txt > output_file_stats.txt
-            """
-
         } else if( unique_file_types[0] == 'd.zip' ) {
-            error "d.zip support not implemented for diann"
-
+            ms_file_args = "--f '${(sorted_ms_files as List).collect { it.name.replaceAll(/\.zip$/, '') }.join('\' --f \'')}'"
+            prepare_raw_files_cmd = "unzip ${sorted_ms_files.join('\' \'')}"
+        } else if( unique_file_types[0] == 'mzML' ) {
+            ms_file_args = "--f '${sorted_ms_files.join('\' --f \'')}'"
         } else {
             error "Unknown file type: ${unique_file_types[0]}"
         }
+
+        """
+        ${prepare_raw_files_cmd}
+
+        diann ${ms_file_args} \
+            --threads ${task.cpus} \
+            --fasta "${fasta_file}" \
+            --fasta-search \
+            --predictor \
+            ${diann_params} \
+            > >(tee "diann.stdout") 2> >(tee "diann.stderr" >&2)
+        mv -v lib.tsv.speclib report.tsv.speclib
+
+        head -n 1 diann.stdout | egrep -o '[0-9]+\\.[0-9]+\\.[0-9]+' | xargs printf "diann_version=%s\\n" > diann_version.txt
+
+        md5sum '${ms_files.join('\' \'')}' report.tsv.speclib report.tsv *.quant | sed -E 's/([a-f0-9]{32}) [ \\*](.*)/\\2\\t\\1/' | sort > hashes.txt
+        stat -L --printf='%n\t%s\n' '${ms_files.join('\' \'')}' report.tsv.speclib report.tsv *.quant | sort > sizes.txt
+        join -t'\t' hashes.txt sizes.txt > output_file_stats.txt
+        """
 
     stub:
         """
