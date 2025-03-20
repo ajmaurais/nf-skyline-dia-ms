@@ -104,8 +104,17 @@ process SKYLINE_IMPORT_MZML {
         path("${ms_file.baseName}.stderr"), emit: stderr
 
     script:
-    if (file_type == 'mzML') {
+        if (file_type == 'mzML') {
+            prepare_raw_files_cmd = ''
+        } else if ( file_type == 'd.zip') {
+            prepare_raw_files_cmd = "unzip ${ms_file}"
+        } else {
+            error "Unknown file type: ${file_type}"
+        }
+
         """
+        ${prepare_raw_files_cmd}
+
         unzip ${skyline_zipfile}
 
         cp ${ms_file} /tmp/${ms_file}
@@ -116,16 +125,11 @@ process SKYLINE_IMPORT_MZML {
             --import-file="/tmp/${ms_file.name}" \
             > >(tee '${ms_file.baseName}.stdout') 2> >(tee '${ms_file.baseName}.stderr' >&2)
         """
-    } else if ( file_type == 'd.zip') {
-        error "d.zip support not implemented for Skyline"
-    } else {
-        error "Unknown file type: ${file_type}"
-    }
 
     stub:
-    """
-    touch "${ms_file.baseName}.stdout" "${ms_file.baseName}.stderr" "${ms_file.baseName}.skyd"
-    """
+        """
+        touch "${ms_file.baseName}.stdout" "${ms_file.baseName}.stderr" "${ms_file.baseName}.skyd"
+        """
 }
 
 process SKYLINE_MERGE_RESULTS {
