@@ -48,3 +48,26 @@ process MSCONVERT {
     touch '${raw_file.baseName}.mzML'
     """
 }
+
+process UNZIP {
+    storeDir "${params.panorama_cache_directory}"
+    label 'process_medium'
+    // label 'error_retry'
+    container params.images.proteowizard
+
+    input:
+        path zip_file
+
+    output:
+        path("${zip_file.baseName}")
+
+    script:
+        """
+        unzip ${zip_file}
+        """
+
+    stub:
+        """
+        mkdir -p '${zip_file.baseName}'
+        """
+}

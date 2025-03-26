@@ -3,6 +3,7 @@ include { GET_STUDY_METADATA } from "../modules/pdc.nf"
 include { METADATA_TO_SKY_ANNOTATIONS } from "../modules/pdc.nf"
 include { GET_FILE } from "../modules/pdc.nf"
 include { MSCONVERT } from "../modules/msconvert.nf"
+include { UNZIP as UNZIP_BRUKER_D } from "../modules/msconvert.nf"
 
 workflow get_pdc_study_metadata {
     main:
@@ -34,11 +35,19 @@ workflow get_pdc_files {
             | map{row -> tuple(row['url'], row['file_name'], row['md5sum'], row['file_size'])} \
             | GET_FILE
 
-        MSCONVERT(GET_FILE.out.downloaded_file)
+        split_ms_file_ch = GET_FILE.out.downloaded_file
+            .branch{ raw:   it.name.endsWith('.raw')
+                     d_zip: it.name.endsWith('.d.zip')
+                     other: true
+                        error "Unknown file type: " + it.name
+            }
+
+        MSCONVERT(split_ms_file_ch.raw)
+        UNZIP_BRUKER_D(split_ms_file_ch.d_zip)
 
     emit:
         study_name = get_pdc_study_metadata.out.study_name
         metadata
         annotations_csv = get_pdc_study_metadata.out.annotations_csv
-        wide_mzml_ch = MSCONVERT.out.mzml_file
+        ms_file_ch = MSCONVERT.out.concat(UNZIP_BRUKER_D.out)
 }

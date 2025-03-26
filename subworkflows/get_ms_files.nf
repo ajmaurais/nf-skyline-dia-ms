@@ -4,12 +4,13 @@ include { PANORAMA_GET_MS_FILE_LIST } from "../modules/panorama"
 include { PANORAMA_PUBLIC_GET_MS_FILE } from "../modules/panorama"
 include { PANORAMA_PUBLIC_GET_MS_FILE_LIST } from "../modules/panorama"
 include { MSCONVERT } from "../modules/msconvert"
+include { UNZIP as UNZIP_BRUKER_D } from "../modules/msconvert"
 
 // useful functions and variables
 include { param_to_list } from "./get_input_files"
 include { escapeRegex } from "../modules/panorama"
 
-workflow get_mzmls {
+workflow get_ms_files {
     take:
         spectra_dir
         spectra_glob
@@ -87,6 +88,7 @@ workflow get_mzmls {
             .branch{
                 mzml: it.name.endsWith('.mzML')
                 raw: it.name.endsWith('.raw')
+                d_zip: it.name.endsWith('.d.zip')
                 other: true
                     error "Unknown file type:" + it.name
             }.set{ms_file_ch}
@@ -94,8 +96,12 @@ workflow get_mzmls {
         // Convert raw files if applicable
         MSCONVERT(ms_file_ch.raw)
 
+        // Unzip d.zip files if applicable
+        UNZIP_BRUKER_D(ms_file_ch.d_zip)
+
     emit:
-        mzml_ch = MSCONVERT.out.concat(ms_file_ch.mzml)
+        ms_file_ch = MSCONVERT.out.concat(ms_file_ch.mzml,
+                                          UNZIP_BRUKER_D.out)
 }
 
 def is_panorama_url(url) {
