@@ -11,7 +11,7 @@ include { MAKE_EMPTY_FILE as METADATA_PLACEHOLDER } from "../modules/qc_report"
 * If param_variable has multiple lines, each line with text is returned as an
 * element in a List.
 *
-* @param param_variable A parameter variable which can either be a single value or List.
+* @param param_variable A parameter variable which can either be a single string or List.
 * @return param_variable as a List with 1 or more values.
 */
 def param_to_list(param_variable) {
