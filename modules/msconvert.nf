@@ -49,17 +49,15 @@ process MSCONVERT {
     """
 }
 
-process UNZIP {
-    storeDir "${params.panorama_cache_directory}"
+process UNZIP_DIRECTORY {
     label 'process_medium'
-    // label 'error_retry'
     container params.images.proteowizard
 
     input:
         path zip_file
 
     output:
-        path("${zip_file.baseName}")
+        path("${zip_file.baseName}", type: "dir")
 
     script:
         """

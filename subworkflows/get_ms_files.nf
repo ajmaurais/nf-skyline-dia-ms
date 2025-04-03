@@ -4,7 +4,7 @@ include { PANORAMA_GET_MS_FILE_LIST } from "../modules/panorama"
 include { PANORAMA_PUBLIC_GET_MS_FILE } from "../modules/panorama"
 include { PANORAMA_PUBLIC_GET_MS_FILE_LIST } from "../modules/panorama"
 include { MSCONVERT } from "../modules/msconvert"
-include { UNZIP as UNZIP_BRUKER_D } from "../modules/msconvert"
+include { UNZIP_DIRECTORY as UNZIP_BRUKER_D } from "../modules/msconvert"
 
 // useful functions and variables
 include { param_to_list } from "./get_input_files"

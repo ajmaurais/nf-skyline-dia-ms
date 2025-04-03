@@ -3,7 +3,7 @@ include { GET_STUDY_METADATA } from "../modules/pdc.nf"
 include { METADATA_TO_SKY_ANNOTATIONS } from "../modules/pdc.nf"
 include { GET_FILE } from "../modules/pdc.nf"
 include { MSCONVERT } from "../modules/msconvert.nf"
-include { UNZIP as UNZIP_BRUKER_D } from "../modules/msconvert.nf"
+include { UNZIP_DIRECTORY as UNZIP_BRUKER_D } from "../modules/msconvert.nf"
 
 workflow get_pdc_study_metadata {
     main:
