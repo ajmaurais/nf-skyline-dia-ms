@@ -52,6 +52,7 @@ process MSCONVERT {
 process UNZIP_DIRECTORY {
     label 'process_medium'
     container params.images.proteowizard
+    containerOptions "--user ${ext.host_uid}:${ext.host_gid}"
 
     input:
         path zip_file
@@ -66,6 +67,6 @@ process UNZIP_DIRECTORY {
 
     stub:
         """
-        mkdir -p '${zip_file.baseName}'
+        mkdir '${zip_file.baseName}'
         """
 }

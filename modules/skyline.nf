@@ -90,37 +90,46 @@ process SKYLINE_IMPORT_MZML {
     label 'process_medium'
     label 'process_high_memory'
     label 'process_short'
-    label 'error_retry'
+    // label 'error_retry'
     container params.images.proteowizard
+    // containerOptions "--user ${ext.host_uid}:${ext.host_gid}"
     stageInMode "${params.skyline.use_hardlinks && workflow.profile != 'aws' ? 'link' : 'symlink'}"
 
     input:
         path skyline_zipfile
-        path mzml_file
+        path ms_file
 
     output:
         path("*.skyd"), emit: skyd_file
-        path("${mzml_file.baseName}.stdout"), emit: stdout
-        path("${mzml_file.baseName}.stderr"), emit: stderr
+        path("${ms_file.baseName}.stdout"), emit: stdout
+        path("${ms_file.baseName}.stderr"), emit: stderr
 
     script:
     """
     unzip ${skyline_zipfile}
 
-    cp ${mzml_file} /tmp/${mzml_file}
+    cp -rv ${ms_file} /tmp/${ms_file}
+    chown -R \$(id -u):\$(id -g) /tmp/${ms_file}
+    rm -vf /tmp/${ms_file}/*-journal
 
+    # export WINEPREFIX=/tmp/mywineprefix
+    # mkdir /tmp/mywineprefix
+    # wine wineboot
+
+    # wine /wineprefix64/drive_c/pwiz/skyline/SkylineCmd.exe
     wine SkylineCmd \
-        --in="${skyline_zipfile.baseName}" --memstamp \
+        --in="${skyline_zipfile.baseName}" \
         --import-no-join \
-        --import-file="/tmp/${mzml_file.name}" \
-        > >(tee '${mzml_file.baseName}.stdout') 2> >(tee '${mzml_file.baseName}.stderr' >&2)
+        --import-file="/tmp/${ms_file.name}" \
+    > >(tee '${ms_file.baseName}.stdout') 2> >(tee '${ms_file.baseName}.stderr' >&2)
     """
 
     stub:
     """
-    touch "${mzml_file.baseName}.stdout" "${mzml_file.baseName}.stderr" "${mzml_file.baseName}.skyd"
+    touch "${ms_file.baseName}.stdout" "${ms_file.baseName}.stderr" "${ms_file.baseName}.skyd"
     """
 }
+
 
 process SKYLINE_MERGE_RESULTS {
     publishDir params.output_directories.skyline.import_spectra, enabled: params.replicate_metadata == null && params.pdc.study_id == null, failOnError: true, mode: 'copy'

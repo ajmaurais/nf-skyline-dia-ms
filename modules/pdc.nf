@@ -10,6 +10,7 @@ process GET_STUDY_METADATA {
     maxRetries 5
     label 'process_low_constant'
     container params.images.pdc_client
+    containerOptions "--user ${ext.host_uid}:${ext.host_gid}"
 
     input:
         val pdc_study_id
