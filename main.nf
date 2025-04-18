@@ -244,8 +244,15 @@ def panorama_auth_required_for_url(url) {
 }
 
 // return true if any entry in the list required panorama authentication
-def any_entry_requires_panorama_auth(param) {
-    def values = param_to_list(param)
+def any_entry_requires_panorama_auth(param_name, Boolean allow_map=false) {
+    def values = null
+    if (params[param_name] instanceof Map && allow_map) {
+        values = params[param_name].collect{ k, v -> param_to_list(v) }.flatten()
+    } else if (params[param_name] instanceof Map && !allow_map) {
+        error "params.${param_name} can not be an instance of Map!"
+    } else {
+        values = param_to_list(params[param_name])
+    }
     return values.any { panorama_auth_required_for_url(it) }
 }
 
@@ -258,9 +265,9 @@ def is_panorama_authentication_required() {
            (params.spectral_library && panorama_auth_required_for_url(params.spectral_library)) ||
            (params.replicate_metadata && panorama_auth_required_for_url(params.replicate_metadata)) ||
            (params.skyline.template_file && panorama_auth_required_for_url(params.skyline.template_file)) ||
-           (params.quant_spectra_dir && any_entry_requires_panorama_auth(params.quant_spectra_dir)) ||
-           (params.chromatogram_library_spectra_dir && any_entry_requires_panorama_auth(params.chromatogram_library_spectra_dir)) ||
-           (params.skyline_skyr_file && any_entry_requires_panorama_auth(params.skyline_skyr_file))
+           (params.quant_spectra_dir && any_entry_requires_panorama_auth('quant_spectra_dir', allow_map=true)) ||
+           (params.chromatogram_library_spectra_dir && any_entry_requires_panorama_auth('chromatogram_library_spectra_dir', allow_map=false)) ||
+           (params.skyline_skyr_file && any_entry_requires_panorama_auth('skyline_skyr_file', allow_map=false))
 
 }
 
