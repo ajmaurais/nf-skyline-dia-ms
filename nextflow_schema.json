@@ -6,8 +6,23 @@
   "type": "object",
   "properties": {
     "quant_spectra_dir": {
-      "type": "string",
-      "default": "[batch_1:'/path/to/dir']",
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      ],
       "description": "The path to the directory containing the raw data to be quantified. If using narrow window DIA and GPF to generated a chromatogram library this is the location of the wide-window data to be searched using the chromatogram library."
     },
     "quant_spectra_glob": {
@@ -50,16 +65,20 @@
       "description": "If supported by the search_engine, skip the MSCONVERT step to generate mzMLs and use vendor raw files for the search and to generate the Skyline document. Default is false."
     },
     "skyline_document_name": {
-      "type": "string"
+      "type": "string",
+      "hidden": true
     },
     "skyline_template_file": {
-      "type": "string"
+      "type": "string",
+      "hidden": true
     },
     "skip_skyline": {
-      "type": "string"
+      "type": "string",
+      "hidden": true
     },
     "skyline_skyr_file": {
-      "type": "string"
+      "type": "string",
+      "hidden": true
     },
     "search_engine": {
       "type": "string",
@@ -114,11 +133,36 @@
     },
     "images": {
       "type": "string",
-      "default": "[ubuntu:'ubuntu:22.04', diann:'quay.io/protio/diann:1.8.1', bibliospec:'quay.io/protio/bibliospec-linux:3.0', panorama_client:'quay.io/protio/panorama-client:1.1.0', pdc_client:'quay.io/mauraisa/pdc_client:2.2.0', encyclopedia:'quay.io/protio/encyclopedia:2.12.30-2', encyclopedia3_mriffle:'quay.io/protio/encyclopedia:3.0.0-MRIFFLE', qc_pipeline:'quay.io/mauraisa/dia_qc_report:2.4.3', proteowizard:'quay.io/mauraisa/pwiz-skyline-i-agree-to-the-vendor-licenses:skyline_daily_25.0.9.97-ae4c997', cascadia:'quay.io/protio/cascadia:0.0.7', cascadia_utils:'quay.io/protio/cascadia-utils:0.0.4', carafe:'quay.io/mauraisa/carafe:0.0.1-beta']"
+      "default": "[ubuntu:'ubuntu:22.04', diann:'quay.io/protio/diann:1.8.1', bibliospec:'quay.io/protio/bibliospec-linux:3.0', panorama_client:'quay.io/protio/panorama-client:1.1.0', pdc_client:'quay.io/mauraisa/pdc_client:2.2.0', encyclopedia:'quay.io/protio/encyclopedia:2.12.30-2', encyclopedia3_mriffle:'quay.io/protio/encyclopedia:3.0.0-MRIFFLE', qc_pipeline:'quay.io/mauraisa/dia_qc_report:2.4.3', proteowizard:'quay.io/mauraisa/pwiz-skyline-i-agree-to-the-vendor-licenses:skyline_daily_25.0.9.97-ae4c997', cascadia:'quay.io/protio/cascadia:0.0.7', cascadia_utils:'quay.io/protio/cascadia-utils:0.0.4', carafe:'quay.io/mauraisa/carafe:0.0.1-beta']",
+      "hidden": true
     },
     "output_directories": {
       "type": "string",
-      "default": "[panorama:'results/nf-skyline-dia-ms/panorama', aws:'results/nf-skyline-dia-ms/aws', msconvert:'results/nf-skyline-dia-ms/msconvert', diann:'results/nf-skyline-dia-ms/diann', cascadia:'results/nf-skyline-dia-ms/cascadia', qc_report:'results/nf-skyline-dia-ms/qc_report', qc_report_tables:'results/nf-skyline-dia-ms/qc_report/tables', batch_report:'results/nf-skyline-dia-ms/batch_report', batch_report_tables:'results/nf-skyline-dia-ms/batch_report/tables', batch_report_plots:'results/nf-skyline-dia-ms/batch_report/plots', gene_reports:'results/nf-skyline-dia-ms/gene_reports', encyclopedia:[convert_blib:'results/nf-skyline-dia-ms/encyclopedia/convert-blib', search_file:'results/nf-skyline-dia-ms/encyclopedia/search-file', create_elib:'results/nf-skyline-dia-ms/encyclopedia/create-elib'], skyline:[add_lib:'results/nf-skyline-dia-ms/skyline/add-lib', import_spectra:'results/nf-skyline-dia-ms/skyline/import-spectra', minimize:'results/nf-skyline-dia-ms/skyline/minimize', reports:'results/nf-skyline-dia-ms/skyline/reports']]"
+      "default": "[panorama:'results/nf-skyline-dia-ms/panorama', aws:'results/nf-skyline-dia-ms/aws', msconvert:'results/nf-skyline-dia-ms/msconvert', diann:'results/nf-skyline-dia-ms/diann', cascadia:'results/nf-skyline-dia-ms/cascadia', qc_report:'results/nf-skyline-dia-ms/qc_report', qc_report_tables:'results/nf-skyline-dia-ms/qc_report/tables', batch_report:'results/nf-skyline-dia-ms/batch_report', batch_report_tables:'results/nf-skyline-dia-ms/batch_report/tables', batch_report_plots:'results/nf-skyline-dia-ms/batch_report/plots', gene_reports:'results/nf-skyline-dia-ms/gene_reports', encyclopedia:[convert_blib:'results/nf-skyline-dia-ms/encyclopedia/convert-blib', search_file:'results/nf-skyline-dia-ms/encyclopedia/search-file', create_elib:'results/nf-skyline-dia-ms/encyclopedia/create-elib'], skyline:[add_lib:'results/nf-skyline-dia-ms/skyline/add-lib', import_spectra:'results/nf-skyline-dia-ms/skyline/import-spectra', minimize:'results/nf-skyline-dia-ms/skyline/minimize', reports:'results/nf-skyline-dia-ms/skyline/reports']]",
+      "hidden": true
     }
-  }
+  },
+  "required": ["quant_spectra_dir", "images", "output_directories"],
+  "$defs": {
+    "pdc": {
+      "title": "pdc",
+      "type": "object",
+      "description": "Parameters for getting raw files and metadata from the Proteomics Data Commons.",
+      "default": "",
+      "properties": {
+        "study_id": {
+          "type": "string",
+          "description": "When this option is set, raw files and metadata will be downloaded from the PDC."
+        },
+        "gene_level_data": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "$ref": "#/$defs/pdc"
+    }
+  ]
 }
