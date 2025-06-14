@@ -53,6 +53,9 @@ workflow {
 
     all_mzml_ch = null       // hold all mzml files generated
 
+    println("profile is: ${workflow.profile}")
+    println("Max CPUs is: ${params.max_cpus}")
+
     // version file channels
     search_engine_version = null
     proteowizard_version = null
